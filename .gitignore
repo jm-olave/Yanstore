@@ -1,0 +1,63 @@
+# Environment variables and sensitive information
+.env
+.env.*
+*.env
+
+# Python virtual environment
+venv/
+env/
+ENV/
+.venv/
+.Python
+pyvenv.cfg
+
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+logs/
+log/
+
+# Local development configuration
+instance/
+.webassets-cache/
+
+# Package distribution and build files
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Database files
+*.sqlite
+*.db
+*.sql
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
