@@ -45,7 +45,6 @@ build/
 # Database files
 *.sqlite
 *.db
-*.sql
 
 # Temporary files
 *.tmp
