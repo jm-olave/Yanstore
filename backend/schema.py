@@ -60,7 +60,7 @@ class CategoryResponse(CategoryBase):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        form_attributes = True
 
 class ProductResponse(ProductBase):
     """Schema for product responses including all related data"""
@@ -69,14 +69,16 @@ class ProductResponse(ProductBase):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    
+    set_name: Optional[str] = None
+    set_code: Optional[str] = None
+    language: Optional[str] = None
     # Optional nested responses
-    category: Optional[CategoryResponse]
-    current_price: Optional[float]
-    available_quantity: Optional[int]
+    category: Optional[CategoryResponse] = None
+    current_price: Optional[float] = None
+    available_quantity: Optional[int] = None
 
     class Config:
-        orm_mode = True
+        form_attributes = True
 
 class InventoryResponse(BaseModel):
     """Schema for inventory responses"""
@@ -91,7 +93,7 @@ class InventoryResponse(BaseModel):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        form_attributes = True
 
 class PriceHistoryResponse(BaseModel):
     """Schema for price history responses"""
@@ -104,7 +106,7 @@ class PriceHistoryResponse(BaseModel):
     changed_by: str
 
     class Config:
-        orm_mode = True
+       form_attribute = True
 
 # Schemas for updates
 
@@ -117,7 +119,7 @@ class ProductUpdate(BaseModel):
     category_id: Optional[int] = None
 
     class Config:
-        orm_mode = True
+        form_attributes = True
 
 class InventoryUpdate(BaseModel):
     """Schema for updating inventory levels"""
@@ -125,7 +127,7 @@ class InventoryUpdate(BaseModel):
     reorder_point: Optional[int] = None
 
     class Config:
-        orm_mode = True
+        form_attributes = True
 
 # Schemas for specialized operations
 
@@ -156,7 +158,7 @@ class OrderResponse(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        form_attributes = True
 
 # Search and filter schemas
 

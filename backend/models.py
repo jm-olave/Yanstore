@@ -9,10 +9,10 @@ class ProductCategory(Base):
     category_id = Column(Integer, primary_key=True, index=True)
     category_name = Column(String(50), nullable=False)
     parent_category_id = Column(Integer, ForeignKey('product_categories.category_id'))
-    created_at = Column(DateTime(timezone=True), server_default='CURRENT_TIMESTAMP')
-    updated_at = Column(DateTime(timezone=True), server_default='CURRENT_TIMESTAMP')
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
-    # Relationships
+    # Relationshipsx
     products = relationship("Product", back_populates="category")
     
 class Product(Base):
@@ -24,13 +24,17 @@ class Product(Base):
     name = Column(String(200), nullable=False)
     description = Column(String)
     condition = Column(String(20), nullable=False)
-    edition = Column(String(50))
-    rarity = Column(String(20))
+    edition = Column(String(50), nullable=True)
+    rarity = Column(String(20), nullable=True)
+    set_name = Column(String(100), nullable=True)  
+    set_code = Column(String(50), nullable=True)   
+    language = Column(String(50), nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default='CURRENT_TIMESTAMP')
-    updated_at = Column(DateTime(timezone=True), server_default='CURRENT_TIMESTAMP')
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Relationships
+    category = relationship("ProductCategory", back_populates="products")
     images = relationship("ProductImage", back_populates="product")
     inventory = relationship("Inventory", back_populates="product")
     price_points = relationship("PricePoint", back_populates="product")

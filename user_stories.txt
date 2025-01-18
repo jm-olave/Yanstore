@@ -1,0 +1,7 @@
+1.Yo como usuario ingreso los productos de acuerdo con su rareza, categoría, condición y costo, la aplicación se encargará de etiquetarlos y registrarlos en historial activo.
+2.Yo como usuario ingreso un proveedor de acuerdo con su categoría y tipo de deudor.
+3.Yo como usuario tengo acceso a la Pantalla de observación de productos
+4.Yo como usuario puedo ver los productos actuales y Filtrar productos en base a su tipo, categoría, rareza.
+5.Cuando un producto se venda, el historial del producto debe ser actualizado y registrado para el reporte.
+6.Yo como usuario puedo ver por producto su tiempo en inventario y diferencia entre el lugar de su almacenamiento.
+7.Yo como usuario puedo ver por producto vendido su costo de envió y tipo de envió que quedara registrado en historial.
