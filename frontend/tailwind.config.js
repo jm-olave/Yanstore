@@ -8,12 +8,21 @@ export default {
     colors: {
       'lightBlue': '#C5DDFF',
       'lighterBlue': '#89A9D9',
-      'MainBlue': '#22224B',
-      'SeccondaryBlue': '#1D3D91',
-      'MainGreen': '#42911D',
-      'MainRed': '#E3504B'
+      'mainBlue': '#22224B',
+      'secondaryBlue': '#1D3D91',
+      'mainGreen': '#42911D',
+      'mainRed': '#E3504B',
+      'white': '#F2F2F2',
+      'black': '#333333'
     },
-    extend: {},
+    extend: {
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+      },
+      fontFamily: {
+        'Mulish': ['"Mulish"', 'sans-serif']
+      }
+    },
   },
   plugins: [],
 }
