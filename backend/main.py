@@ -164,3 +164,94 @@ def update_product(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Invalid update data")
+    
+
+# Supplier endpoints
+@app.post("/suppliers/", response_model=schema.SupplierResponse)
+def create_supplier(
+    supplier: schema.SupplierCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a new supplier"""
+    try:
+        db_supplier = models.Supplier(**supplier.dict())
+        db.add(db_supplier)
+        db.commit()
+        db.refresh(db_supplier)
+        return db_supplier
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Supplier creation failed"
+        )
+
+@app.get("/suppliers/", response_model=List[schema.SupplierResponse])
+def list_suppliers(
+    skip: int = 0,
+    limit: int = 100,
+    debtor_type: Optional[str] = None,
+    is_active: bool = True,
+    db: Session = Depends(get_db)
+):
+    """List suppliers with optional filtering"""
+    query = db.query(models.Supplier)
+    
+    if debtor_type:
+        query = query.filter(models.Supplier.debtor_type == debtor_type)
+    if is_active is not None:
+        query = query.filter(models.Supplier.is_active == is_active)
+    
+    suppliers = query.offset(skip).limit(limit).all()
+    return suppliers
+
+@app.get("/suppliers/by-category/{category_id}", response_model=List[schema.SupplierResponse])
+def get_suppliers_by_category(
+    category_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get suppliers that provide products in a specific category"""
+    suppliers = db.query(models.Supplier)\
+        .join(models.SupplierProduct)\
+        .join(models.Product)\
+        .filter(models.Product.category_id == category_id)\
+        .distinct()\
+        .all()
+    return suppliers
+
+@app.get("/suppliers/{supplier_id}", response_model=schema.SupplierResponse)
+def get_supplier(
+    supplier_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get a specific supplier by ID"""
+    supplier = db.query(models.Supplier)\
+        .filter(models.Supplier.supplier_id == supplier_id)\
+        .first()
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    return supplier
+
+@app.patch("/suppliers/{supplier_id}", response_model=schema.SupplierResponse)
+def update_supplier(
+    supplier_id: int,
+    supplier_update: schema.SupplierUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update a supplier's information"""
+    db_supplier = db.query(models.Supplier)\
+        .filter(models.Supplier.supplier_id == supplier_id)\
+        .first()
+    if not db_supplier:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    
+    for field, value in supplier_update.dict(exclude_unset=True).items():
+        setattr(db_supplier, field, value)
+    
+    try:
+        db.commit()
+        db.refresh(db_supplier)
+        return db_supplier
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Update failed")

@@ -175,3 +175,40 @@ class ProductSort(BaseModel):
     """Schema for sorting product results"""
     sort_by: str = 'created_at'
     order: str = 'desc'
+
+
+# schemas for supplier 
+class SupplierBase(BaseModel):
+    """Base schema for supplier data"""
+    name: str = Field(..., min_length=1, max_length=100)
+    debtor_type: str = Field(..., pattern='^(regular|preferred|premium)$')
+    contact_person: Optional[str] = Field(None, max_length=100)
+    email: Optional[str] = Field(None, max_length=100)
+    phone: Optional[str] = Field(None, max_length=20)
+    payment_terms: Optional[str] = Field(None, max_length=100)
+    credit_limit: Optional[float] = Field(None, ge=0)
+
+class SupplierCreate(SupplierBase):
+    """Schema for creating a new supplier"""
+    pass
+
+class SupplierUpdate(BaseModel):
+    """Schema for updating supplier information"""
+    name: Optional[str] = Field(None, max_length=100)
+    debtor_type: Optional[str] = Field(None, pattern='^(regular|preferred|premium)$')
+    contact_person: Optional[str] = Field(None, max_length=100)
+    email: Optional[str] = Field(None, max_length=100)
+    phone: Optional[str] = Field(None, max_length=20)
+    payment_terms: Optional[str] = Field(None, max_length=100)
+    credit_limit: Optional[float] = Field(None, ge=0)
+    is_active: Optional[bool] = None
+
+class SupplierResponse(SupplierBase):
+    """Schema for supplier responses"""
+    supplier_id: int
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
