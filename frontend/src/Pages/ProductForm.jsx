@@ -2,6 +2,7 @@ import React from 'react'
 import InputSelect from '../Components/SelectInput/InputSelect'
 import TextInput from '../Components/TextInput/TextInput'
 import DateInput from '../Components/DateInput/DateInput'
+import ImageInput from '../Components/ImageInput/ImageInput'
 
 const ProductForm = () => {
 
@@ -28,6 +29,7 @@ const ProductForm = () => {
       <InputSelect name='Condition' options={conditions}/>
       <InputSelect name='Obtaining Method' options={options}/>
       <DateInput name='Purchase Date'/>
+      <ImageInput name='Image'/>
     </div>
   )
 }
