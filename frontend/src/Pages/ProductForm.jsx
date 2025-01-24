@@ -1,5 +1,6 @@
 import React from 'react'
 import InputSelect from '../Components/InputSelect/InputSelect'
+import TextInput from '../Components/TextInput/TextInput'
 
 const ProductForm = () => {
 
@@ -21,6 +22,7 @@ const ProductForm = () => {
 
   return (
     <div>
+      <TextInput name='Name'/>
       <InputSelect name='Categories' options={options}/>
       <InputSelect name='Condition' options={conditions}/>
       <InputSelect name='Obtaining method' options={options}/>

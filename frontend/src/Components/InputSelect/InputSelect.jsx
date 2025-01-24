@@ -27,7 +27,6 @@ const InputSelect = ({ name, options, form }) => {
         }
       </select>
     </div>
-    
   )
 }
 
