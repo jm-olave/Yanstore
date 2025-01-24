@@ -3,6 +3,7 @@ import InputSelect from '../Components/SelectInput/InputSelect'
 import TextInput from '../Components/TextInput/TextInput'
 import DateInput from '../Components/DateInput/DateInput'
 import ImageInput from '../Components/ImageInput/ImageInput'
+import TextAreaInput from '../Components/TextAreaInput/TextAreaInput'
 
 const ProductForm = () => {
 
@@ -30,6 +31,7 @@ const ProductForm = () => {
       <InputSelect name='Obtaining Method' options={options}/>
       <DateInput name='Purchase Date'/>
       <ImageInput name='Image'/>
+      <TextAreaInput name='Notes'/>
     </div>
   )
 }
