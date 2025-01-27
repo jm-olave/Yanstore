@@ -46,9 +46,9 @@ class InventoryCreate(BaseModel):
 class PricePointCreate(BaseModel):
     """Schema for creating price points"""
     product_id: int
-    base_cost: Decimal = Field(..., ge=0, decimal_places=2)
-    selling_price: Decimal = Field(..., ge=0, decimal_places=2)
-    market_price: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    base_cost: Decimal = Field(..., ge=0)
+    selling_price: Decimal = Field(..., ge=0)
+    market_price: Optional[Decimal] = Field(None, ge=0)
     currency: str = Field(..., pattern='^[A-Z]{3}$')
 
 # Now schemas for responses
