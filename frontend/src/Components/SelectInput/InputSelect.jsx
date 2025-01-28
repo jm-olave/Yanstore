@@ -1,12 +1,13 @@
 import React from 'react'
 
-const InputSelect = ({ name, options, form }) => {
+const InputSelect = ({ name, options, form, onChange}) => {
 
   const InputSelectName = name
   const InputSelectOptions = options
 
   const handleOptionChange = (event) => {
     event.target.blur()
+    onChange()
   }
 
   return (
