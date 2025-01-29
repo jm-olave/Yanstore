@@ -79,32 +79,60 @@ def list_categories(
 
 # Product endpoints
 @app.post("/products/", response_model=schema.ProductResponse)
-def create_product(
-    product: schema.ProductCreate,
-    db: Session = Depends(get_db)
+async def create_product(
+    name: str = Form(...),
+    category_id: int = Form(...),
+    condition: str = Form(...),
+    description: Optional[str] = Form(None),
+    image: Optional[UploadFile] = File(None),
+    notes: Optional[str] = Form(None)
 ):
-    """Create a new product"""
+    """Create a new product with image"""
     try:
-        # Check if category exists
-        if not db.query(models.ProductCategory).filter(
-            models.ProductCategory.category_id == product.category_id
-        ).first():
-            raise HTTPException(
-                status_code=404,
-                detail="Category not found"
-            )
-
-        db_product = models.Product(**product.dict())
+        # Validate image type
+        if image:
+            content_type = image.content_type
+            if content_type not in ["image/jpeg", "image/png"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Only JPG and PNG images are allowed"
+                )
+        
+        # Create product
+        db_product = models.Product(
+            name=name,
+            category_id=category_id,
+            condition=condition,
+            description=description,
+            notes=notes
+        )
         db.add(db_product)
         db.commit()
         db.refresh(db_product)
+        
+        # Handle image if provided
+        if image:
+            # Read image data
+            image_data = await image.read()
+            
+            # Get file extension from content type
+            image_type = "jpg" if content_type == "image/jpeg" else "png"
+            
+            # Create image record
+            db_image = models.ProductImage(
+                product_id=db_product.product_id,
+                image_data=image_data,
+                image_type=image_type,
+                is_primary=True
+            )
+            db.add(db_image)
+            db.commit()
+        
         return db_product
-    except IntegrityError as e:
+        
+    except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=400,
-            detail="Product with this SKU already exists"
-        )
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/products/", response_model=List[schema.ProductResponse])
 def list_products(

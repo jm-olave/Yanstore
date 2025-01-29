@@ -51,7 +51,8 @@ class ProductImage(Base):
 
     image_id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
-    image_url = Column(String(255), nullable=False)
+    image_data = Column(LargeBinary, nullable=False)  # Store the actual image data
+    image_type = Column(String(10), nullable=False)
     is_primary = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
