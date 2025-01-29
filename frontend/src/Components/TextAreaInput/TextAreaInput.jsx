@@ -10,6 +10,7 @@ const TextAreaInput = ({name, form, title, value, onChange}) => {
             form={form}
             placeholder={`Notes related to the product`}
             onChange={onChange}
+            value={value}
       >
       </textarea>
     </div>
