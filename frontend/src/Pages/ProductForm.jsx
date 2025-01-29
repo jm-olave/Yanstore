@@ -9,12 +9,14 @@ import SubmitButton from '../Components/SubmitButton/SubmitButton'
 const ProductForm = () => {
 
   let options = [
+    'Select Option',
     'Deckbox',
     'Playmat',
     'Sleeves'
   ]
 
   let conditions = [
+    'Select Option',
     'Mint',
     'Near Mint',
     'Excelent',
@@ -26,9 +28,9 @@ const ProductForm = () => {
 
   const [form, setForm] = useState({
     name: '',
-    categories: '',
-    condition: '',
-    obtainingMethod: '',
+    categories: 'Select Option',
+    condition: 'Select Option',
+    obtainingMethod: 'Select Option',
     purchaseDate: '',
     image: '',
     notes: '',
@@ -39,25 +41,27 @@ const ProductForm = () => {
       ...form,
       [e.target.name]: e.target.value
     })
-
-    console.log(form)
+    console.log(e.target.name)
+    console.log(e.target.value)
   }
+
+  console.log(form)
 
   return (
     <form className='w-11/12 pb-11 mx-auto lg:grid lg:grid-cols-2 lg:gap-4 lg:max-w-5xl'>
       <div className='flex flex-col justify-evenly'>
-        <TextInput name='Name' onChange={handleFormChange}/>
-        <InputSelect name='Categories' options={options} onChange={handleFormChange}/>
-        <InputSelect name='Condition' options={conditions} onChange={handleFormChange}/>
+        <TextInput name='name' title='Name' value={form.name} onChange={handleFormChange}/>
+        <InputSelect name='categories' title='Categories' value={form.categories} options={options} onChange={handleFormChange}/>
+        <InputSelect name='condition' title='Condition' value={form.condition} options={conditions} onChange={handleFormChange}/>
       </div>
       <div className='flex flex-col'>
-        <InputSelect name='Obtaining Method' options={options} onChange={handleFormChange}/>
-        <DateInput name='Purchase Date' onChange={handleFormChange}/>
-        <ImageInput name='Image' onChange={handleFormChange}/>
+        <InputSelect name='obtainingMethod' title='Obtaining Method' value={form.obtainingMethod} options={options} onChange={handleFormChange}/>
+        <DateInput name='purchaseDate' title='Purchase Date' value={form.purchaseDate} onChange={handleFormChange}/>
+        <ImageInput name='image' title='Image' value={form.image} onChange={handleFormChange}/>
       </div>
       
       <div className='lg:col-span-2'>
-        <TextAreaInput name='Notes' onChange={handleFormChange}/>
+        <TextAreaInput name='notes' title='Notes' value={form.notes} onChange={handleFormChange}/>
       </div>
 
       <div className='w-2/3 mt-8 mx-auto max-w-xs lg:col-start-2 lg:m-0 lg:justify-self-end'>
