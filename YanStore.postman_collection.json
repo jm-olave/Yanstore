@@ -1,0 +1,175 @@
+{
+	"info": {
+		"_postman_id": "02efff51-1d32-4b72-b11e-f897f228b430",
+		"name": "YanStore",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "13894792"
+	},
+	"item": [
+		{
+			"name": "CreateCategory",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"category_name\": \"Playmats\",\r\n  \"parent_category_id\": null\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/categories/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"categories",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "createProduct",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "name",
+							"value": "\"Playmat Dragon Shield\"",
+							"type": "text"
+						},
+						{
+							"key": "category_id",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "condition",
+							"value": "Mint",
+							"type": "text"
+						},
+						{
+							"key": "description",
+							"value": "\"Official Dragon Shield Playmat\"",
+							"type": "text"
+						},
+						{
+							"key": "image",
+							"type": "file",
+							"src": "/D:/Joshua/github projects/Yanstore Local/Yanstore/img/shark abyss.PNG"
+						},
+						{
+							"key": "sku",
+							"value": "PL_07",
+							"type": "text"
+						},
+						{
+							"key": "edition",
+							"value": "Alpha",
+							"type": "text"
+						},
+						{
+							"key": "rarity",
+							"value": "mythic",
+							"type": "text"
+						},
+						{
+							"key": "set_name",
+							"value": "Alpha Edition",
+							"type": "text"
+						},
+						{
+							"key": "set_code",
+							"value": "LEA",
+							"type": "text"
+						},
+						{
+							"key": "language",
+							"value": "English",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/products/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"products",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "createSupplier",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Card Masters Inc\",\r\n    \"debtor_type\": \"regular\",\r\n    \"contact_person\": \"John Smith\",\r\n    \"email\": \"john@cardmasters.com\",\r\n    \"phone\": \"555-0123\",\r\n    \"payment_terms\": \"Net 30\",\r\n    \"credit_limit\": 10000.00\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/suppliers/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"suppliers",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

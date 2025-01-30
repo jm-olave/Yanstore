@@ -15,7 +15,7 @@ class ProductBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     sku: str = Field(..., min_length=3, max_length=50)
     description: Optional[str] = None
-    condition: str = Field(..., pattern='^(new|used|refurbished)$')
+    condition: str = Field(..., pattern='^(Mint|Near Mint|Excelent|Good|Lightly Played|Played|Poor)$')
     edition: Optional[str] = None
     rarity: Optional[str] = None
     set_name: Optional[str] = None
@@ -65,13 +65,19 @@ class CategoryResponse(CategoryBase):
 class ProductResponse(ProductBase):
     """Schema for product responses including all related data"""
     product_id: int
+    name: str
+    sku: str
     category_id: int
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
+    description: Optional[str] = None
+    condition: str
+    edition: Optional[str] = None
+    rarity: Optional[str] = None
     set_name: Optional[str] = None
     set_code: Optional[str] = None
     language: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
     # Optional nested responses
     category: Optional[CategoryResponse] = None
     current_price: Optional[float] = None

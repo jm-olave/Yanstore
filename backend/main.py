@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -81,15 +81,28 @@ def list_categories(
 @app.post("/products/", response_model=schema.ProductResponse)
 async def create_product(
     name: str = Form(...),
+    sku: str = Form(...),
     category_id: int = Form(...),
-    condition: str = Form(...),
     description: Optional[str] = Form(None),
+    condition: str = Form(...),
+    edition: Optional[str] = Form(None),
+    rarity: Optional[str] = Form(None),
+    set_name: Optional[str] = Form(None),
+    set_code: Optional[str] = Form(None),
+    language: Optional[str] = Form(None),
     image: Optional[UploadFile] = File(None),
-    notes: Optional[str] = Form(None)
+    db: Session = Depends(get_db)
 ):
-    """Create a new product with image"""
+    """Create a new product with all fields and optional image"""
     try:
-        # Validate image type
+        # Validate the condition value explicitly
+        valid_conditions = ["Mint", "Near Mint", "Excelent", "Good", "Lightly Played", "Played", "Poor"]
+        if condition not in valid_conditions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid condition. Must be one of: {', '.join(valid_conditions)}"
+            )
+        # Validate image type if provided
         if image:
             content_type = image.content_type
             if content_type not in ["image/jpeg", "image/png"]:
@@ -98,13 +111,18 @@ async def create_product(
                     detail="Only JPG and PNG images are allowed"
                 )
         
-        # Create product
+        # Create product with all fields
         db_product = models.Product(
             name=name,
+            sku=sku,
             category_id=category_id,
-            condition=condition,
             description=description,
-            notes=notes
+            condition=condition,
+            edition=edition,
+            rarity=rarity,
+            set_name=set_name,
+            set_code=set_code,
+            language=language
         )
         db.add(db_product)
         db.commit()
@@ -112,27 +130,45 @@ async def create_product(
         
         # Handle image if provided
         if image:
-            # Read image data
-            image_data = await image.read()
-            
-            # Get file extension from content type
-            image_type = "jpg" if content_type == "image/jpeg" else "png"
-            
-            # Create image record
-            db_image = models.ProductImage(
-                product_id=db_product.product_id,
-                image_data=image_data,
-                image_type=image_type,
-                is_primary=True
-            )
-            db.add(db_image)
-            db.commit()
+            try:
+                # Read image data
+                image_data = await image.read()
+                
+                # Get file extension from content type
+                image_type = "jpg" if content_type == "image/jpeg" else "png"
+                
+                # Create image record
+                db_image = models.ProductImage(
+                    product_id=db_product.product_id,
+                    image_data=image_data,
+                    image_type=image_type,
+                    is_primary=True
+                )
+                db.add(db_image)
+                db.commit()
+                
+            except Exception as img_error:
+                logger.error(f"Error saving image: {str(img_error)}")
+                # If image upload fails, delete the product
+                db.delete(db_product)
+                db.commit()
+                raise HTTPException(
+                    status_code=400,
+                    detail="Failed to save product image"
+                )
         
         return db_product
         
+    except HTTPException as http_error:
+        # Re-raise HTTP exceptions
+        raise http_error
     except Exception as e:
+        logger.error(f"Error creating product: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while creating the product"
+        )
 
 @app.get("/products/", response_model=List[schema.ProductResponse])
 def list_products(
