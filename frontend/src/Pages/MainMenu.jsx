@@ -16,7 +16,7 @@ const MainMenu = () => {
           <div className='flex flex-col justify-center items-center w-4/5 mt-14 mx-auto gap-14 text-white md:w-full md:gap-8'>
             <GradientButton url={'add-product'} text={'ADD PRODUCT'}/>
             <GradientButton url={'add-category'} text={'ADD CATEGORY'}/>
-            <GradientButton url={'add-debtor'} text={'ADD DEBTOR'}/>
+            <GradientButton url={'add-provider'} text={'ADD PROVIDER'}/>
             <GradientButton url={'inventory'} text={'INVENTORY'}/>
           </div>
         </section>

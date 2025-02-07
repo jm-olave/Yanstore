@@ -12,7 +12,7 @@ export default {
       'secondaryBlue': '#1D3D91',
       'mainGreen': '#42911D',
       'mainRed': '#E3504B',
-      'white': '#F2F2F2',
+      'white': '#FFFFFF',
       'black': '#333333'
     },
     extend: {
@@ -25,7 +25,8 @@ export default {
         'calendar': `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 24 24" style="fill: rgba(29, 61, 145, 1);transform: ;msFilter:;"><path d="M21 20V6c0-1.103-.897-2-2-2h-2V2h-2v2H9V2H7v2H5c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2h14c1.103 0 2-.897 2-2zM9 18H7v-2h2v2zm0-4H7v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2zm2-5H5V7h14v2z"></path></svg>')`
       },
       fontFamily: {
-        'Mulish': ['"Mulish"', 'sans-serif']
+        'Mulish': ['"Mulish"', 'sans-serif'],
+        'Josefin': ['"Josefin Sans"', 'sans-serif']
       },
     },
   },
