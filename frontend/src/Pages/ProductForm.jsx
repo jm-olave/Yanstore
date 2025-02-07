@@ -32,31 +32,31 @@ const ProductForm = () => {
       label: 'Select Option'
     },
     {
-      value: 'm-1',
+      value: 'c-1',
       label: 'Mint'
     },
     {
-      value: 'm-2',
+      value: 'c-3',
       label: 'Near Mint'
     },
     {
-      value: 'm-2',
+      value: 'c-4',
       label: 'Excellent'
     },
     {
-      value: 'm-2',
+      value: 'c-5',
       label: 'Good'
     },
     {
-      value: 'm-2',
+      value: 'c-6',
       label: 'Lightly Played'
     },
     {
-      value: 'm-2',
+      value: 'c-7',
       label: 'Played'
     },
     {
-      value: 'm-2',
+      value: 'c-8',
       label: 'Poor'
     },
   ]
