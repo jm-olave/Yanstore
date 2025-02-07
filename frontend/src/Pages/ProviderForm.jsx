@@ -4,7 +4,7 @@ import NumberInput from '../Components/NumberInput/NumberInput'
 import InputSelect from '../Components/SelectInput/InputSelect'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
 
-const debtorTypes = [
+const providerTypes = [
   'Select Option',
   'regular',
   'premium',
@@ -19,10 +19,10 @@ const paymentTermsOptions = [
   'Immediate'
 ]
 
-const DebtorForm = () => {
+const ProviderForm = () => {
   const [form, setForm] = useState({
     name: '',
-    debtor_type: 'Select Option',
+    provider_type: 'Select Option',
     contact_person: '',
     email: '',
     phone: '',
@@ -35,11 +35,11 @@ const DebtorForm = () => {
 
   const validateForm = () => {
     if (!form.name.trim()) {
-      setSubmitStatus({ type: 'error', message: 'Company name is required' })
+      setSubmitStatus({ type: 'error', message: 'Name is required' })
       return false
     }
-    if (form.debtor_type === 'Select Option') {
-      setSubmitStatus({ type: 'error', message: 'Please select a debtor type' })
+    if (form.provider_type === 'Select Option') {
+      setSubmitStatus({ type: 'error', message: 'Please select a provider type' })
       return false
     }
     if (!form.email.trim()) {
@@ -77,7 +77,7 @@ const DebtorForm = () => {
       setIsSubmitting(true)
       setSubmitStatus({ type: '', message: '' })
 
-      const response = await fetch('http://127.0.0.1:8000/debtors', {
+      const response = await fetch('http://127.0.0.1:8000/providers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,13 +92,13 @@ const DebtorForm = () => {
       const data = await response.json()
       setSubmitStatus({ 
         type: 'success', 
-        message: 'Debtor information successfully added!' 
+        message: 'Provider information successfully added!' 
       })
       
       // Reset form after successful submission
       setForm({
         name: '',
-        debtor_type: 'Select Option',
+        provider_type: 'Select Option',
         contact_person: '',
         email: '',
         phone: '',
@@ -135,16 +135,16 @@ const DebtorForm = () => {
         <div className='flex flex-col justify-evenly'>
           <TextInput 
             name='name' 
-            title='Company Name' 
+            title='Name' 
             value={form.name} 
             onChange={handleFormChange}
             required
           />
           <InputSelect 
-            name='debtor_type' 
-            title='Debtor Type' 
-            value={form.debtor_type} 
-            options={debtorTypes} 
+            name='provider_type' 
+            title='Provider Type' 
+            value={form.provider_type} 
+            options={providerTypes} 
             onChange={handleFormChange}
             required
           />
@@ -156,7 +156,7 @@ const DebtorForm = () => {
           />
         </div>
 
-        <div className='flex flex-col'>
+        <div className='flex flex-col lg:justify-between'>
           <TextInput 
             name='email' 
             title='Email' 
@@ -192,7 +192,7 @@ const DebtorForm = () => {
 
         <div className='w-2/3 mt-8 mx-auto max-w-xs lg:col-start-2 lg:m-0 lg:justify-self-end'>
           <SubmitButton 
-            text={isSubmitting ? 'SUBMITTING...' : 'ADD DEBTOR'} 
+            text={isSubmitting ? 'SUBMITTING...' : 'ADD PROVIDER'} 
             onClick={handleSubmit}
             disabled={isSubmitting}
           />
@@ -202,4 +202,4 @@ const DebtorForm = () => {
   )
 }
 
-export default DebtorForm
+export default ProviderForm
