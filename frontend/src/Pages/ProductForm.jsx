@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import InputSelect from '../Components/SelectInput/InputSelect'
 import TextInput from '../Components/TextInput/TextInput'
 import DateInput from '../Components/DateInput/DateInput'
@@ -6,13 +6,11 @@ import ImageInput from '../Components/ImageInput/ImageInput'
 import TextAreaInput from '../Components/TextAreaInput/TextAreaInput'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
 
-
 const ProductForm = () => {
-  const options = [
+  const optainingMethods = [
     'Select Option',
-    'Deckbox',
-    'Playmat',
-    'Sleeves'
+    'Audit',
+    'Purchase',
   ]
 
   const conditions = [
@@ -38,6 +36,9 @@ const ProductForm = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' })
+  const [categories, setCategories] = useState([
+    { value: 'Select Option', label: 'Select Option' }
+  ])
 
   const validateForm = () => {
     if (!form.name.trim()) {
@@ -117,6 +118,46 @@ const ProductForm = () => {
     }
   }
 
+  const getCategories = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/categories', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
+      }
+
+      const data = await response.json() // Changed from response.body.json()
+      return data
+
+    } catch (error) {
+      setSubmitStatus({ 
+        type: 'error', 
+        message: `Failed to fetch: ${error.message}` 
+      })
+      return [] // Return empty array in case of error
+    }
+  }
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await getCategories()
+      const mappedCategories = [
+        { value: 'Select Option', label: 'Select Option' },
+        ...data.map(cat => ({
+          value: cat.category_id,
+          label: cat.category_name
+        }))
+      ]
+      setCategories(mappedCategories)
+    }
+    fetchData()
+  }, [])
+
   return (
     <div className="w-11/12 pb-11 mx-auto lg:max-w-5xl">
       {submitStatus.message && (
@@ -138,7 +179,7 @@ const ProductForm = () => {
             name='categories' 
             title='Categories' 
             value={form.categories} 
-            options={options} 
+            options={categories} 
             onChange={handleFormChange}
           />
           <InputSelect 
@@ -155,7 +196,7 @@ const ProductForm = () => {
             name='obtainingMethod' 
             title='Obtaining Method' 
             value={form.obtainingMethod} 
-            options={options} 
+            options={optainingMethods} 
             onChange={handleFormChange}
           />
           <DateInput 

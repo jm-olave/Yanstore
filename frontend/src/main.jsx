@@ -11,7 +11,6 @@ import ProductForm from './Pages/ProductForm.jsx'
 import ProviderForm from './Pages/ProviderForm.jsx'
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
     <BrowserRouter>
      <Routes>
       <Route index element={<MainMenu/>}/>
@@ -32,5 +31,4 @@ createRoot(document.getElementById('root')).render(
       </Route>
      </Routes>
     </BrowserRouter>
-  </StrictMode>,
 )

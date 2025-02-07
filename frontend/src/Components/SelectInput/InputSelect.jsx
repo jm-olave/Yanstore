@@ -21,9 +21,9 @@ const InputSelect = ({ name, options, title, value, form, onChange}) => {
               value={value}
       >
         {
-          InputSelectOptions.map(item => (
-            <option value={item} key={item}>
-              {item}
+          InputSelectOptions.map(({ value, label }) => (
+            <option value={value} key={value}>
+              {label}
             </option>
           ))
         }
