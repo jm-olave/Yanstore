@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
+from datetime import datetime
 import logging
 
 # Import modules
@@ -25,7 +26,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://172.29.223.73:5173"],  # Add your frontend URL
+    allow_origins=["http://localhost:3000", "http://192.168.2.138:5173"],  # Add your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -81,7 +82,7 @@ def list_categories(
 @app.post("/products/", response_model=schema.ProductResponse)
 async def create_product(
     name: str = Form(...),
-    sku: str = Form(...),
+    sku = "",
     category_id: int = Form(...),
     description: Optional[str] = Form(None),
     condition: str = Form(...),
@@ -95,6 +96,25 @@ async def create_product(
 ):
     """Create a new product with all fields and optional image"""
     try:
+    #First, we fetch the category from the database using the provided category_id
+        category = db.query(models.ProductCategory).filter(
+            models.ProductCategory.category_id == category_id
+        ).first()
+        
+        # We check if the category exists - if not, we return a 404 error
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+            
+        # Here's where the SKU magic happens:
+        # 1. Take the first two letters of the category name and make them uppercase
+        category_prefix = category.category_name[:2].upper()
+        
+        # 2. Get current timestamp in format: YYMMDDHHMM 
+        # (Year, Month, Day, Hour, Minute)
+        timestamp = datetime.now().strftime('%y%m%d%H%M')
+        
+        # 3. Combine the category prefix with timestamp to create the SKU
+        sku = f"{category_prefix}{timestamp}"
         # Validate the condition value explicitly
         valid_conditions = ["Mint", "Near Mint", "Excelent", "Good", "Lightly Played", "Played", "Poor"]
         if condition not in valid_conditions:
