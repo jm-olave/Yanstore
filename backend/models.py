@@ -23,13 +23,10 @@ class Product(Base):
     category_id = Column(Integer, ForeignKey('product_categories.category_id'))
     name = Column(String(200), nullable=False)
     description = Column(String)
-    condition = Column(String(20), nullable=False)
-    edition = Column(String(50), nullable=True)
-    rarity = Column(String(20), nullable=True)
-    set_name = Column(String(100), nullable=True)  
-    set_code = Column(String(50), nullable=True)   
-    language = Column(String(50), nullable=True)
+    condition = Column(String(20), nullable=False) 
     is_active = Column(Boolean, default=True)
+    purchase_date = Column(Date)  # Changed from DateTime to Date
+    obtained_method = Column(String(50))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
