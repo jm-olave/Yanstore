@@ -8,20 +8,57 @@ import SubmitButton from '../Components/SubmitButton/SubmitButton'
 
 const ProductForm = () => {
   const optainingMethods = [
-    'Select Option',
-    'Audit',
-    'Purchase',
+    {
+      value: 'm-0',
+      label: 'Select Option'
+    },
+    {
+      value: 'm-1',
+      label: 'Audit'
+    },
+    {
+      value: 'm-2',
+      label: 'Purchase'
+    },
+    {
+      value: 'm-3',
+      label: 'Trade'
+    },
   ]
 
   const conditions = [
-    'Select Option',
-    'Mint',
-    'Near Mint',
-    'Excellent',
-    'Good',
-    'Lightly Played',
-    'Played',
-    'Poor'
+    {
+      value: 'c-0',
+      label: 'Select Option'
+    },
+    {
+      value: 'm-1',
+      label: 'Mint'
+    },
+    {
+      value: 'm-2',
+      label: 'Near Mint'
+    },
+    {
+      value: 'm-2',
+      label: 'Excellent'
+    },
+    {
+      value: 'm-2',
+      label: 'Good'
+    },
+    {
+      value: 'm-2',
+      label: 'Lightly Played'
+    },
+    {
+      value: 'm-2',
+      label: 'Played'
+    },
+    {
+      value: 'm-2',
+      label: 'Poor'
+    },
   ]
 
   const [form, setForm] = useState({
