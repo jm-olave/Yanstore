@@ -9,54 +9,54 @@ import SubmitButton from '../Components/SubmitButton/SubmitButton'
 const ProductForm = () => {
   const optainingMethods = [
     {
-      value: 'm-0',
+      value: 'Select Option',
       label: 'Select Option'
     },
     {
-      value: 'm-1',
+      value: 'Audit',
       label: 'Audit'
     },
     {
-      value: 'm-2',
+      value: 'Purchase',
       label: 'Purchase'
     },
     {
-      value: 'm-3',
+      value: 'Trade',
       label: 'Trade'
     },
   ]
 
   const conditions = [
     {
-      value: 'c-0',
+      value: 'Select Option',
       label: 'Select Option'
     },
     {
-      value: 'c-1',
+      value: 'Mint',
       label: 'Mint'
     },
     {
-      value: 'c-3',
+      value: 'Near Mint',
       label: 'Near Mint'
     },
     {
-      value: 'c-4',
+      value: 'Excellent',
       label: 'Excellent'
     },
     {
-      value: 'c-5',
+      value: 'Good',
       label: 'Good'
     },
     {
-      value: 'c-6',
+      value: 'Lightly Played',
       label: 'Lightly Played'
     },
     {
-      value: 'c-7',
+      value: 'Played',
       label: 'Played'
     },
     {
-      value: 'c-8',
+      value: 'Poor',
       label: 'Poor'
     },
   ]
@@ -101,21 +101,43 @@ const ProductForm = () => {
     return true
   }
 
+  const handleFormChange = (e) => {
+    setForm(prevForm => ({
+      ...prevForm,
+      [e.target.name]: e.target.value  
+    }));
+  };
+
   const submitForm = async () => {
     try {
       setIsSubmitting(true)
       setSubmitStatus({ type: '', message: '' })
+      
+      // Create FormData object to handle file upload
+      const formData = new FormData()
+      formData.append('name', form.name)
+      formData.append('category_id', form.category_id)
+      formData.append('condition', form.condition)
+      formData.append('obtained_method', form.obtained_method)
+      formData.append('purchase_date', form.purchase_date)
+      formData.append('description', form.description)
+      if (form.image) {
+        formData.append('image', form.image)
+      }
+      console.log('Form data being submitted:', Object.fromEntries(formData))
 
       const response = await fetch('http://127.0.0.1:8000/products', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(form)
+        body: formData
       })
 
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`)
+      }
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Submission error:', errorData)
+        throw new Error(`Error: ${response.status} - ${JSON.stringify(errorData)}`)
       }
 
       const data = await response.json()
@@ -134,7 +156,7 @@ const ProductForm = () => {
         image: '',
         description: '',
       })
-
+      
     } catch (error) {
       setSubmitStatus({ 
         type: 'error', 
@@ -143,13 +165,6 @@ const ProductForm = () => {
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  const handleFormChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value
-    })
   }
 
   const handleSubmit = async (event) => {
@@ -172,15 +187,15 @@ const ProductForm = () => {
         throw new Error(`Error: ${response.status}`)
       }
 
-      const data = await response.json() // Changed from response.body.json()
+      const data = await response.json()
       return data
 
     } catch (error) {
       setSubmitStatus({ 
         type: 'error', 
-        message: `Failed to fetch: ${error.message}` 
+        message: `Failed to fetch categories: ${error.message}` 
       })
-      return [] // Return empty array in case of error
+      return []
     }
   }
 
@@ -217,9 +232,9 @@ const ProductForm = () => {
             onChange={handleFormChange}
           />
           <InputSelect 
-            name='categories' 
+            name='category_id'  // Changed from 'categories' to match form state
             title='Categories' 
-            value={form.categories} 
+            value={form.category_id} 
             options={categories} 
             onChange={handleFormChange}
           />
@@ -234,14 +249,14 @@ const ProductForm = () => {
 
         <div className='flex flex-col'>
           <InputSelect 
-            name='obtained_method'           // Changed to match state
+            name='obtained_method'
             title='Obtaining Method' 
             value={form.obtained_method} 
             options={optainingMethods} 
             onChange={handleFormChange}
           />
           <DateInput 
-            name='purchase_date'            // Changed to match state
+            name='purchase_date'
             title='Purchase Date' 
             value={form.purchase_date} 
             onChange={handleFormChange}
@@ -275,5 +290,7 @@ const ProductForm = () => {
     </div>
   )
 }
+
+
 
 export default ProductForm
