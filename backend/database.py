@@ -59,15 +59,19 @@ Base = declarative_base()
 
 def init_db():
     """
-    Initialize the database by creating all tables.
-    This should be called when starting the application.
+    Drops all tables and recreates them from scratch.
+    Use this during development when you need a fresh start.
     """
     try:
-        # Create all tables defined in your models
+        # Drop everything
+        Base.metadata.drop_all(bind=engine)
+        logger.info("Dropped all existing tables")
+        
+        # Create fresh tables
         Base.metadata.create_all(bind=engine)
-        logger.info("Successfully initialized database tables")
+        logger.info("Created new tables successfully")
     except Exception as e:
-        logger.error(f"Failed to initialize database: {str(e)}")
+        logger.error(f"Database initialization failed: {str(e)}")
         raise
 
 def get_db():

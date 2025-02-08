@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from datetime import datetime
 import logging
+import argparse
 
 # Import modules
 from database import get_db, init_db, engine
@@ -86,11 +87,8 @@ async def create_product(
     category_id: int = Form(...),
     description: Optional[str] = Form(None),
     condition: str = Form(...),
-    edition: Optional[str] = Form(None),
-    rarity: Optional[str] = Form(None),
-    set_name: Optional[str] = Form(None),
-    set_code: Optional[str] = Form(None),
-    language: Optional[str] = Form(None),
+    purchase_date: datetime = Form(...),
+    obtained_method: str = Form(...),
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
@@ -138,11 +136,8 @@ async def create_product(
             category_id=category_id,
             description=description,
             condition=condition,
-            edition=edition,
-            rarity=rarity,
-            set_name=set_name,
-            set_code=set_code,
-            language=language
+            purchase_date = purchase_date,
+            obtained_method = obtained_method
         )
         db.add(db_product)
         db.commit()
@@ -339,3 +334,16 @@ def update_supplier(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Update failed")
+    
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--reset-db", action="store_true", help="Reset the database")
+    args = parser.parse_args()
+
+    if args.reset_db:
+        init_db()
+        print("Database reset complete")
+    else:
+        import uvicorn
+        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

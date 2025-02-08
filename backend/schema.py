@@ -16,11 +16,8 @@ class ProductBase(BaseModel):
     sku: str = Field(..., min_length=3, max_length=50)
     description: Optional[str] = None
     condition: str = Field(..., pattern='^(Mint|Near Mint|Excelent|Good|Lightly Played|Played|Poor)$')
-    edition: Optional[str] = None
-    rarity: Optional[str] = None
-    set_name: Optional[str] = None
-    set_code: Optional[str] = None
-    language: Optional[str] = None
+    purchase_date: date
+    obtained_method: str = Field(..., min_length=1, max_length=50)
 
 # Now let's create schemas for creating new records
 
