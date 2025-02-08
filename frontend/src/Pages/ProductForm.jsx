@@ -63,12 +63,12 @@ const ProductForm = () => {
 
   const [form, setForm] = useState({
     name: '',
-    categories: 'Select Option',
+    category_id: 'Select Option',
     condition: 'Select Option',
-    obtainingMethod: 'Select Option',
-    purchaseDate: '',
+    obtained_method: 'Select Option',
+    purchase_date: '',
     image: '',
-    notes: '',
+    description: '',
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -82,7 +82,7 @@ const ProductForm = () => {
       setSubmitStatus({ type: 'error', message: 'Name is required' })
       return false
     }
-    if (form.categories === 'Select Option') {
+    if (form.category_id === 'Select Option') {
       setSubmitStatus({ type: 'error', message: 'Please select a category' })
       return false
     }
@@ -90,8 +90,12 @@ const ProductForm = () => {
       setSubmitStatus({ type: 'error', message: 'Please select a condition' })
       return false
     }
-    if (form.obtainingMethod === 'Select Option') {
+    if (form.obtained_method === 'Select Option') {
       setSubmitStatus({ type: 'error', message: 'Please select an obtaining method' })
+      return false
+    }
+    if (!form.purchase_date) {
+      setSubmitStatus({ type: 'error', message: 'Purchase date is required' })
       return false
     }
     return true
@@ -123,12 +127,12 @@ const ProductForm = () => {
       // Reset form after successful submission
       setForm({
         name: '',
-        categories: 'Select Option',
+        category_id: 'Select Option',
         condition: 'Select Option',
-        obtainingMethod: 'Select Option',
-        purchaseDate: '',
+        obtained_method: 'Select Option',
+        purchase_date: '',
         image: '',
-        notes: '',
+        description: '',
       })
 
     } catch (error) {
@@ -230,16 +234,16 @@ const ProductForm = () => {
 
         <div className='flex flex-col'>
           <InputSelect 
-            name='obtainingMethod' 
+            name='obtained_method'           // Changed to match state
             title='Obtaining Method' 
-            value={form.obtainingMethod} 
+            value={form.obtained_method} 
             options={optainingMethods} 
             onChange={handleFormChange}
           />
           <DateInput 
-            name='purchaseDate' 
+            name='purchase_date'            // Changed to match state
             title='Purchase Date' 
-            value={form.purchaseDate} 
+            value={form.purchase_date} 
             onChange={handleFormChange}
           />
           <ImageInput 
@@ -252,10 +256,10 @@ const ProductForm = () => {
         
         <div className='lg:col-span-2'>
           <TextAreaInput 
-            name='notes' 
+            name='description' 
             title='Notes'
             placeholder='Notes'
-            value={form.notes} 
+            value={form.description} 
             onChange={handleFormChange}
           />
         </div>

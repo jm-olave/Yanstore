@@ -5,24 +5,44 @@ import InputSelect from '../Components/SelectInput/InputSelect'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
 
 const providerTypes = [
-  'Select Option',
-  'regular',
-  'premium',
-  'wholesale'
+  {
+    value: 'pt-0',
+    label: 'Select Option'
+  },
+  {
+    value: 'pt-1',
+    label: 'Regular'
+  },
+  {
+    value: 'pt-2',
+    label: 'Premium'
+  },
 ]
 
 const paymentTermsOptions = [
-  'Select Option',
-  'Net 30',
-  'Net 60',
-  'Net 90',
-  'Immediate'
+  {
+    value: 'pto-0',
+    label: 'Select Option'
+  },
+  {
+    value: 'pto-1',
+    label: 'Cash'
+  },
+  {
+    value: 'pto-2',
+    label: 'Credit'
+  },
+  {
+    value: 'pto-3',
+    label: 'USD'
+  },
+  
 ]
 
 const ProviderForm = () => {
   const [form, setForm] = useState({
     name: '',
-    provider_type: 'Select Option',
+    debtor_type: 'Select Option',
     contact_person: '',
     email: '',
     phone: '',
@@ -38,7 +58,7 @@ const ProviderForm = () => {
       setSubmitStatus({ type: 'error', message: 'Name is required' })
       return false
     }
-    if (form.provider_type === 'Select Option') {
+    if (form.debtor_type === 'Select Option') {
       setSubmitStatus({ type: 'error', message: 'Please select a provider type' })
       return false
     }
@@ -77,7 +97,7 @@ const ProviderForm = () => {
       setIsSubmitting(true)
       setSubmitStatus({ type: '', message: '' })
 
-      const response = await fetch('http://127.0.0.1:8000/providers', {
+      const response = await fetch('http://127.0.0.1:8000/supliers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -98,7 +118,7 @@ const ProviderForm = () => {
       // Reset form after successful submission
       setForm({
         name: '',
-        provider_type: 'Select Option',
+        debtor_type: 'Select Option',
         contact_person: '',
         email: '',
         phone: '',
@@ -143,7 +163,7 @@ const ProviderForm = () => {
           <InputSelect 
             name='provider_type' 
             title='Provider Type' 
-            value={form.provider_type} 
+            value={form.debtor_type} 
             options={providerTypes} 
             onChange={handleFormChange}
             required
