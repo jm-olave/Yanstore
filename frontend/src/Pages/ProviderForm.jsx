@@ -6,17 +6,21 @@ import SubmitButton from '../Components/SubmitButton/SubmitButton'
 
 const providerTypes = [
   {
-    value: 'pt-0',
+    value: 'Select Option',
     label: 'Select Option'
   },
   {
-    value: 'pt-1',
+    value: 'regular',
     label: 'Regular'
   },
   {
-    value: 'pt-2',
+    value: 'premium',
     label: 'Premium'
   },
+  {
+    value: 'preferred',
+    label: 'Preferred'
+  }
 ]
 
 const paymentTermsOptions = [
@@ -97,7 +101,7 @@ const ProviderForm = () => {
       setIsSubmitting(true)
       setSubmitStatus({ type: '', message: '' })
 
-      const response = await fetch('http://127.0.0.1:8000/supliers', {
+      const response = await fetch('http://127.0.0.1:8000/suppliers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,7 +165,7 @@ const ProviderForm = () => {
             required
           />
           <InputSelect 
-            name='provider_type' 
+            name='debtor_type' 
             title='Provider Type' 
             value={form.debtor_type} 
             options={providerTypes} 
