@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useParams } from 'react-router'
 import NumberInput from '../Components/NumberInput/NumberInput'
 import TextInput from '../Components/TextInput/TextInput'
 import DateInput from '../Components/DateInput/DateInput'
@@ -14,8 +15,10 @@ const paymentMethods = [
 ]
 
 const FinancialInformationForm = () => {
+  const { productId } = useParams() // Using React Router's useParams hook
+
   const [form, setForm] = useState({
-    product_id: '',
+    product_id: productId || '', // Initialize with productId from URL params
     base_cost: '',
     selling_price: '',
     market_price: '',
@@ -30,19 +33,16 @@ const FinancialInformationForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' })
 
-  // Get product details from URL parameter
+  // Fetch product details when productId is available
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const productId = params.get('productId')
     if (productId) {
       fetchProductDetails(productId)
-      setForm(prev => ({ ...prev, product_id: productId }))
     }
-  }, [])
+  }, [productId])
 
-  const fetchProductDetails = async (productId) => {
+  const fetchProductDetails = async (id) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/products/${productId}`)
+      const response = await fetch(`http://127.0.0.1:8000/products/${id}`)
       if (!response.ok) throw new Error('Failed to fetch product details')
       const data = await response.json()
       setProduct(data)
@@ -119,7 +119,7 @@ const FinancialInformationForm = () => {
       
       // Reset form
       setForm({
-        product_id: '',
+        product_id: productId || '', // Maintain the productId
         base_cost: '',
         selling_price: '',
         market_price: '',
