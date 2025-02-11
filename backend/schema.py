@@ -40,14 +40,74 @@ class InventoryCreate(BaseModel):
     quantity: int = Field(..., ge=0)  # Must be greater than or equal to 0
     reorder_point: int = Field(0, ge=0)
 
-class PricePointCreate(BaseModel):
-    """Schema for creating price points"""
+# schema for sales and financialInformation 
+# Add these to your schema.py file
+
+class PricePointBase(BaseModel):
+    """Base schema for price point data"""
     product_id: int
     base_cost: Decimal = Field(..., ge=0)
     selling_price: Decimal = Field(..., ge=0)
     market_price: Optional[Decimal] = Field(None, ge=0)
     currency: str = Field(..., pattern='^[A-Z]{3}$')
+    effective_from: datetime
 
+class PricePointCreate(PricePointBase):
+    """Schema for creating a new price point"""
+    pass
+
+class PricePointResponse(PricePointBase):
+    """Schema for price point responses"""
+    price_point_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class SaleBase(BaseModel):
+    """Base schema for sale data"""
+    product_id: int
+    sale_price: Decimal = Field(..., ge=0)
+    sale_date: datetime
+    payment_method: str = Field(..., pattern='^(Credit|Cash|USD|Trade)$')
+    notes: Optional[str] = None
+
+class SaleCreate(SaleBase):
+    """Schema for creating a new sale"""
+    pass
+
+class SaleResponse(SaleBase):
+    """Schema for sale responses"""
+    sale_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class FinancialMetricBase(BaseModel):
+    """Base schema for financial metrics"""
+    record_date: date
+    dollar_average: Decimal
+    efficiency_over_costs: Decimal
+    efficiency_over_goal: Decimal
+    estimated_revenue: Decimal
+    actual_revenue: Decimal
+    total_net_income: Decimal
+    tax_rate: Decimal
+    reserve_rate: Decimal
+    profit_margin: Decimal
+
+class FinancialMetricCreate(FinancialMetricBase):
+    """Schema for creating financial metrics"""
+    pass
+
+class FinancialMetricResponse(FinancialMetricBase):
+    """Schema for financial metric responses"""
+    metric_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 # Now schemas for responses
 
 class CategoryResponse(CategoryBase):
@@ -110,6 +170,30 @@ class PriceHistoryResponse(BaseModel):
 
     class Config:
        form_attribute = True
+
+# Schema for InventoryTransaction 
+class InventoryTransactionBase(BaseModel):
+    """Base schema for inventory transactions"""
+    inventory_id: int
+    transaction_type: str
+    quantity: int
+    reference_id: Optional[str] = None
+    notes: Optional[str] = None
+    created_by: str
+
+class InventoryTransactionResponse(InventoryTransactionBase):
+    """Schema for inventory transaction responses"""
+    transaction_id: int
+    transaction_date: datetime
+
+    class Config:
+        from_attributes = True
+
+
+
+
+
+
 
 # Schemas for updates
 

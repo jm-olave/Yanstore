@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import extract
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, date
 import logging
 import argparse
 
@@ -92,6 +93,7 @@ async def create_product(
     condition: str = Form(...),
     purchase_date: datetime = Form(...),
     obtained_method: str = Form(...),
+    initial_quantity: Optional[int] = Form(1),
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
@@ -143,9 +145,26 @@ async def create_product(
             obtained_method = obtained_method
         )
         db.add(db_product)
-        db.commit()
-        db.refresh(db_product)
+        db.flush()
+        db_inventory = models.Inventory(
+            product_id=db_product.product_id,
+            quantity=initial_quantity,
+            available_quantity=initial_quantity,
+            reserved_quantity=0,
+            reorder_point=1
+        )
+        db.add(db_inventory)
+        db.flush()
         
+        # Create initial inventory transaction
+        transaction = models.InventoryTransaction(
+            inventory_id=db_inventory.inventory_id,
+            transaction_type="initial",
+            quantity=initial_quantity,
+            notes="Initial inventory setup",
+            created_by="system"
+        )
+        db.add(transaction)
         # Handle image if provided
         if image:
             try:
@@ -174,7 +193,9 @@ async def create_product(
                     status_code=400,
                     detail="Failed to save product image"
                 )
-        
+            
+        db.commit()
+        db.refresh(db_product)
         return db_product
         
     except HTTPException as http_error:
@@ -337,7 +358,179 @@ def update_supplier(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Update failed")
+
+# pricepoint and financial endpoints 
+@app.post("/price-points/", response_model=schema.PricePointResponse)
+def create_price_point(
+    price_point: schema.PricePointCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a new price point for a product"""
+    try:
+        # Check if product exists
+        product = db.query(models.Product).filter(
+            models.Product.product_id == price_point.product_id
+        ).first()
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        db_price_point = models.PricePoint(**price_point.dict())
+        db.add(db_price_point)
+        db.commit()
+        db.refresh(db_price_point)
+        return db_price_point
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid price point data")
+
+@app.post("/sales/", response_model=schema.SaleResponse)
+def register_sale(
+    sale: schema.SaleCreate,
+    db: Session = Depends(get_db)
+):
+    """Register a product sale and update inventory"""
+    try:
+        # Start transaction
+        db_sale = models.Sale(**sale.dict())
+        db.add(db_sale)
+
+        # Update inventory
+        inventory = db.query(models.Inventory).filter(
+            models.Inventory.product_id == sale.product_id
+        ).first()
+        
+        if inventory:
+            if inventory.available_quantity < 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Product out of stock"
+                )
+            inventory.available_quantity -= 1
+            
+            # Create inventory transaction
+            transaction = models.InventoryTransaction(
+                inventory_id=inventory.inventory_id,
+                transaction_type="sale",
+                quantity=-1,
+                reference_id=str(db_sale.sale_id),
+                notes=f"Sale registered on {sale.sale_date}",
+                created_by="system"
+            )
+            db.add(transaction)
+
+        # Update financial metrics
+        update_financial_metrics(db, sale)
+        
+        db.commit()
+        db.refresh(db_sale)
+        return db_sale
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid sale data")
+
+#  inventory endpoints 
+@app.get("/inventory/{product_id}", response_model=schema.InventoryResponse)
+def get_product_inventory(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get inventory status for a specific product"""
+    inventory = db.query(models.Inventory).filter(
+        models.Inventory.product_id == product_id
+    ).first()
     
+    if not inventory:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No inventory record found for product {product_id}"
+        )
+    
+    return inventory
+
+@app.get("/inventory-transactions/{inventory_id}", response_model=List[schema.InventoryTransactionResponse])
+def get_inventory_transactions(
+    inventory_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get transaction history for a specific inventory record"""
+    transactions = db.query(models.InventoryTransaction).filter(
+        models.InventoryTransaction.inventory_id == inventory_id
+    ).offset(skip).limit(limit).all()
+    
+    if not transactions:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No transactions found for inventory {inventory_id}"
+        )
+    
+    return transactions
+
+
+
+
+
+
+# Logic methods, for analysis, financial metrics etc...
+
+
+def update_financial_metrics(db: Session, sale: schema.SaleCreate):
+    """Update financial metrics based on sale"""
+    # Get the date parts for grouping
+    sale_date = sale.sale_date
+    year = sale_date.year
+    month = sale_date.month
+    
+    # Get or create metric for this month
+    metric = db.query(models.FinancialMetric).filter(
+        extract('year', models.FinancialMetric.record_date) == year,
+        extract('month', models.FinancialMetric.record_date) == month
+    ).first()
+    
+    if not metric:
+        metric = models.FinancialMetric(
+            record_date=date(year, month, 1),
+            dollar_average=0,
+            efficiency_over_costs=0,
+            efficiency_over_goal=0,
+            estimated_revenue=0,
+            actual_revenue=0,
+            total_net_income=0,
+            tax_rate=0.19,  # Example tax rate
+            reserve_rate=0.10,  # Example reserve rate
+            profit_margin=0
+        )
+        db.add(metric)
+    
+    # Update metrics
+    metric.actual_revenue += float(sale.sale_price)
+    
+    # Get product cost from latest price point
+    latest_price_point = db.query(models.PricePoint).filter(
+        models.PricePoint.product_id == sale.product_id
+    ).order_by(models.PricePoint.effective_from.desc()).first()
+    
+    if latest_price_point:
+        cost = float(latest_price_point.base_cost)
+        revenue = float(sale.sale_price)
+        
+        # Update efficiency metrics
+        if cost > 0:
+            metric.efficiency_over_costs = ((revenue - cost) / cost) * 100
+        
+        # Update profit margin
+        total_sales = metric.actual_revenue
+        total_costs = cost  # This should actually sum all costs for the period
+        if total_sales > 0:
+            metric.profit_margin = ((total_sales - total_costs) / total_sales) * 100
+            
+        # Update net income
+        tax_amount = revenue * metric.tax_rate
+        reserve_amount = revenue * metric.reserve_rate
+        metric.total_net_income = revenue - cost - tax_amount - reserve_amount
+        
+    db.commit()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

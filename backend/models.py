@@ -220,6 +220,25 @@ class OrderItem(Base):
     order = relationship("Order", back_populates="order_items")
     product = relationship("Product", back_populates="order_items")
 
+
+class Sale(Base):
+    """
+    Records individual product sales with pricing and payment information.
+    Links to product and maintains sale history.
+    """
+    __tablename__ = "sales"
+
+    sale_id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
+    sale_price = Column(Numeric(10, 2), nullable=False)
+    sale_date = Column(DateTime(timezone=True), nullable=False)
+    payment_method = Column(String(20), nullable=False)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    product = relationship("Product", backref="sales")
+
 class FinancialMetric(Base):
     """
     Tracks financial performance metrics over time.
