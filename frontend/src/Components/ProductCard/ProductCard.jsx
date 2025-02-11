@@ -16,7 +16,7 @@ const ProductCard = ({ id, name = 'Name', price = 0, notes, img = ImagePlacehold
           <div className='mb-4 font-Josefin font-bold text-center leading-5 text-s'>
             {notes}
           </div>
-          <div className='py-1 px-10 border-2 border-secondaryBlue rounded-full text-secondaryBlue font-Mulish font-black'>
+          <div className='py-1 px-10 border border-secondaryBlue rounded-full text-secondaryBlue font-Mulish font-black cursor-pointer hover:text-white hover:bg-gradient-radial from-secondaryBlue to-mainBlue'>
             More info
           </div>
         </div>
