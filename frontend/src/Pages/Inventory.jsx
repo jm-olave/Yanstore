@@ -179,7 +179,7 @@ const Inventory = () => {
                     <TableCol text={items.description} key={`desc-${items.sku}`}/>
                     <TableCol text={items.condition} key={`cond-${items.sku}`}/>
                     <TableCol text={items.category.category_name} key={`cat-${items.sku}`}/>
-                    <TableCol text={items.obtained_method} key={`cat-${items.sku}`}/>
+                    <TableCol text={items.obtained_method} key={`ob_me-${items.sku}`}/>
                     <TableCol text={"1"} key={`quantity-${items.sku}`}/>
                     <TableCol key={`edit-${items.sku}`}>
                       <NavLink key={`${items.sku}-edit`}>Edit</NavLink>

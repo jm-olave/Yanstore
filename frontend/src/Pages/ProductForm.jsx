@@ -5,8 +5,12 @@ import DateInput from '../Components/DateInput/DateInput'
 import ImageInput from '../Components/ImageInput/ImageInput'
 import TextAreaInput from '../Components/TextAreaInput/TextAreaInput'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
+import { useNavigate } from 'react-router'
 
 const ProductForm = () => {
+
+  const navigate = useNavigate()
+
   const obtainingMethods = [
     {
       value: 'Select Option',
@@ -146,7 +150,7 @@ const ProductForm = () => {
         throw new Error(errorMessage)
       }
 
-      await response.json()
+      const productData = await response.json()
       setSubmitStatus({ 
         type: 'success', 
         message: 'Product successfully added!' 
@@ -161,6 +165,11 @@ const ProductForm = () => {
         image: null,
         description: '',
       })
+
+      // Navigate to financial information form with the new product ID
+      setTimeout(() => {
+        navigate(`/add-financial-information/${productData.product_id}`)
+      }, 1500)
 
     } catch (error) {
       setSubmitStatus({ 
