@@ -13,15 +13,15 @@ const ProductForm = () => {
       label: 'Select Option'
     },
     {
-      value: 'audit',
+      value: 'Audit',
       label: 'Audit'
     },
     {
-      value: 'purchase',
+      value: 'Purchase',
       label: 'Purchase'
     },
     {
-      value: 'trade',
+      value: 'Trade',
       label: 'Trade'
     },
   ]
