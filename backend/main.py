@@ -7,6 +7,7 @@ from typing import List, Optional
 from datetime import datetime, date
 import logging
 import argparse
+import os
 
 # Import modules
 from database import get_db, init_db, engine
@@ -32,6 +33,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://192.168.2.138:5173",
+        "https://yanstoreapi-bzercjhpe2d4aueh.canadacentral-01.azurewebsites.net",
         "http://172.29.223.73:5173"],  # Add your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
@@ -48,6 +50,16 @@ async def startup_event():
         logger.error(f"Database initialization failed: {str(e)}")
         raise
 
+
+@app.get("/")
+async def root():
+    """Health check endpoint"""
+    logger.info("Health check endpoint called")
+    return {
+        "status": "healthy",
+        "environment": os.getenv("ENV", "development"),
+        "database_host": os.getenv("PROD_DB_HOST", "not_set")
+    }
 # Health check endpoint
 @app.get("/health")
 async def health_check():
@@ -543,4 +555,4 @@ if __name__ == "__main__":
         print("Database reset complete")
     else:
         import uvicorn
-        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+        uvicorn.run("app", host="0.0.0.0", port=8000)
