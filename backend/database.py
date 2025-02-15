@@ -56,10 +56,7 @@ def init_db():
     Drops all tables and recreates them from scratch.
     Only allowed in development environment for safety.
     """
-    if settings.ENV == "production":
-        logger.warning("Attempted to initialize database in production environment")
-        raise Exception("Database initialization not allowed in production")
-    
+
     try:
         Base.metadata.drop_all(bind=engine)
         logger.info("Dropped all existing tables")

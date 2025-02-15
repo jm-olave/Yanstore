@@ -8,6 +8,7 @@ from datetime import datetime, date
 import logging
 import argparse
 import os
+from config import get_settings
 
 # Import modules
 from database import get_db, init_db, engine
@@ -43,6 +44,10 @@ app.add_middleware(
 # Initialize database tables on startup
 @app.on_event("startup")
 async def startup_event():
+    global settings
+    logger.info("Loading environment variables...")
+    settings = get_settings()
+    logger.info(f"Loaded environment: {settings.ENV}")
     try:
         init_db()
         logger.info("Database initialized successfully")
