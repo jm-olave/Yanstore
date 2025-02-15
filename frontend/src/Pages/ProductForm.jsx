@@ -52,7 +52,7 @@ const ProductForm = () => {
       if (!isEditMode) return
 
       try {
-        const response = await fetch(`http://127.0.0.1:8000/products/${productId}`)
+        const response = await fetch(`https://yanstore-api-6e6412b99156.herokuapp.com/products/${productId}`)
         if (!response.ok) throw new Error('Failed to fetch product')
         
         const productData = await response.json()
@@ -152,7 +152,7 @@ const ProductForm = () => {
             })
           : formData,
         headers: isEditMode 
-          ? { 'Content-Type': 'application/json' }
+          ? {'Accept': 'application/json'}
           : undefined
       })
 
