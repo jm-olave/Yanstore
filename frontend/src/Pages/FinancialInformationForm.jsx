@@ -85,7 +85,7 @@ const FinancialInformationForm = () => {
       setSubmitStatus({ type: '', message: '' })
 
       // First, create the price point
-      const pricePointResponse = await fetch('http://127.0.0.1:8000/price-points/', {
+      const pricePointResponse = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/price-points/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -101,7 +101,7 @@ const FinancialInformationForm = () => {
       if (!pricePointResponse.ok) throw new Error('Failed to create price point')
 
       // Then, register the sale
-      const saleResponse = await fetch('http://127.0.0.1:8000/sales/', {
+      const saleResponse = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/sales/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -120,7 +120,7 @@ const Inventory = () => {
 
   const getProducts = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/products', {
+      const response = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/products', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

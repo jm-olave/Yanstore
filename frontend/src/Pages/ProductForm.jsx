@@ -134,8 +134,8 @@ const ProductForm = () => {
       }
 
       const url = isEditMode 
-        ? `http://127.0.0.1:8000/products/${productId}`
-        : 'http://127.0.0.1:8000/products/'
+        ? `https://yanstore-api-6e6412b99156.herokuapp.com/products/${productId}`
+        : 'https://yanstore-api-6e6412b99156.herokuapp.com/products/'
 
       const method = isEditMode ? 'PATCH' : 'POST'
 
@@ -229,7 +229,7 @@ const ProductForm = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/categories')
+        const response = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/categories')
         if (!response.ok) throw new Error(`Error: ${response.status}`)
         
         const data = await response.json()
