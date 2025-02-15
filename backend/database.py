@@ -4,17 +4,30 @@ from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
 import logging
-from config import get_settings
+from dataclasses import dataclass
 
 # Set up logging to help us understand database operations
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(".env.development")
+
+# Create settings dictionary directly from environment variables
+@dataclass
+class DatabaseSettings:
+    ENV: str = os.getenv('ENV')
+    DB_USER: str = os.getenv('DB_USER')
+    DB_PASSWORD: str = os.getenv('DB_PASSWORD')
+    DB_HOST: str = os.getenv('DB_HOST')
+    DB_PORT: str = os.getenv('DB_PORT', '5432')
+    DB_NAME: str = os.getenv('DB_NAME')
+
+# Create settings instance
+settings = DatabaseSettings()
 
 # Get settings from config
-settings = get_settings()
+
 
 # Construct the database URL using settings
 DATABASE_URL = f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
@@ -25,10 +38,8 @@ engine = create_engine(
     # Echo SQL statements for debugging (only in development)
     echo=settings.ENV == "development",
     
-    # Connection pool settings from config
-    pool_size=settings.DB_POOL_SIZE,
-    max_overflow=settings.DB_MAX_OVERFLOW,
-    pool_timeout=settings.DB_POOL_TIMEOUT,
+    
+
     
     # Enable automatic reconnection if connection is lost
     pool_pre_ping=True,

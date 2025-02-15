@@ -8,7 +8,7 @@ from datetime import datetime, date
 import logging
 import argparse
 import os
-from config import get_settings
+
 
 # Import modules
 from database import get_db, init_db, engine
@@ -35,6 +35,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://192.168.2.138:5173",
         "https://yanstoreapi-bzercjhpe2d4aueh.canadacentral-01.azurewebsites.net",
+        "https://magenta-paprenjak-8434f9.netlify.app/",
         "http://172.29.223.73:5173"],  # Add your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
@@ -44,10 +45,6 @@ app.add_middleware(
 # Initialize database tables on startup
 @app.on_event("startup")
 async def startup_event():
-    global settings
-    logger.info("Loading environment variables...")
-    settings = get_settings()
-    logger.info(f"Loaded environment: {settings.ENV}")
     try:
         init_db()
         logger.info("Database initialized successfully")

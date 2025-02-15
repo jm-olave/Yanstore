@@ -15,14 +15,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file first (optimization for dependency caching)
-COPY backend/requirements.txt .
+COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
-COPY backend/ .
-
+# Copy the current directory contents into the container at /app
+COPY . .
 # Expose the port the app runs on
 EXPOSE 8000
 
