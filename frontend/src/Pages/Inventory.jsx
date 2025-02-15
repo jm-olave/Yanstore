@@ -160,7 +160,7 @@ const Inventory = () => {
               <TableRow>
                 <TableCol text='NAME' key='NAME'/>
                 <TableCol text='SKU' key='SKU'/>
-                <TableCol text='PRICE' key='PRICE'/>
+                {/* <TableCol text='PRICE' key='PRICE'/> */}
                 <TableCol text='DESC' key='DESC'/>
                 <TableCol text='CONDITION' key='CONDITION'/>
                 <TableCol text='CATEGORY' key='CATEGORY'/>
@@ -175,14 +175,14 @@ const Inventory = () => {
                   <TableRow key={items.sku}>                
                     <TableCol text={items.name} key={`name-${items.sku}`}/>
                     <TableCol text={items.sku} key={`sku-${items.sku}`}/>
-                    <TableCol text={items.current_price} key={`price-${items.sku}`}/>
+                    {/* <TableCol text={items.current_price} key={`price-${items.sku}`}/> */}
                     <TableCol text={items.description} key={`desc-${items.sku}`}/>
                     <TableCol text={items.condition} key={`cond-${items.sku}`}/>
                     <TableCol text={items.category.category_name} key={`cat-${items.sku}`}/>
                     <TableCol text={items.obtained_method} key={`ob_me-${items.sku}`}/>
                     <TableCol text={"1"} key={`quantity-${items.sku}`}/>
                     <TableCol key={`edit-${items.sku}`}>
-                      <NavLink key={`${items.sku}-edit`}>Edit</NavLink>
+                      <NavLink to={`/edit-product/${items.product_id}`} key={`${items.sku}-edit`}>Edit</NavLink>
                     </TableCol>
                     
                   </TableRow>

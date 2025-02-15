@@ -17,6 +17,9 @@ createRoot(document.getElementById('root')).render(
       <Route element={<FormLayout title={'ADD PRODUCT'}/>}>
         <Route path='add-product' element={<ProductForm/>}/>
       </Route>
+      <Route element={<FormLayout title={'EDIT PRODUCT'}/>}>
+        <Route path='edit-product/:productId' element={<ProductForm/>}/>
+      </Route>
       <Route element={<FormLayout title={'ADD CATEGORY'}/>}>
         <Route path='add-category' element={<CategoryForm/>}/>
       </Route>

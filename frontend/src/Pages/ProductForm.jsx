@@ -1,68 +1,33 @@
 import React, { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router'
 import InputSelect from '../Components/SelectInput/InputSelect'
 import TextInput from '../Components/TextInput/TextInput'
 import DateInput from '../Components/DateInput/DateInput'
 import ImageInput from '../Components/ImageInput/ImageInput'
 import TextAreaInput from '../Components/TextAreaInput/TextAreaInput'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
-import { useNavigate } from 'react-router'
 
 const ProductForm = () => {
-
+  const { productId } = useParams()
   const navigate = useNavigate()
+  const isEditMode = Boolean(productId)
 
   const obtainingMethods = [
-    {
-      value: 'Select Option',
-      label: 'Select Option'
-    },
-    {
-      value: 'Audit',
-      label: 'Audit'
-    },
-    {
-      value: 'Purchase',
-      label: 'Purchase'
-    },
-    {
-      value: 'Trade',
-      label: 'Trade'
-    },
+    { value: 'Select Option', label: 'Select Option' },
+    { value: 'Audit', label: 'Audit' },
+    { value: 'Purchase', label: 'Purchase' },
+    { value: 'Trade', label: 'Trade' },
   ]
 
   const conditions = [
-    {
-      value: 'Select Option',
-      label: 'Select Option'
-    },
-    {
-      value: 'Mint',
-      label: 'Mint'
-    },
-    {
-      value: 'Near Mint',
-      label: 'Near Mint'
-    },
-    {
-      value: 'Excellent',
-      label: 'Excellent'
-    },
-    {
-      value: 'Good',
-      label: 'Good'
-    },
-    {
-      value: 'Lightly Played',
-      label: 'Lightly Played'
-    },
-    {
-      value: 'Played',
-      label: 'Played'
-    },
-    {
-      value: 'Poor',
-      label: 'Poor'
-    },
+    { value: 'Select Option', label: 'Select Option' },
+    { value: 'Mint', label: 'Mint' },
+    { value: 'Near Mint', label: 'Near Mint' },
+    { value: 'Excellent', label: 'Excellent' },
+    { value: 'Good', label: 'Good' },
+    { value: 'Lightly Played', label: 'Lightly Played' },
+    { value: 'Played', label: 'Played' },
+    { value: 'Poor', label: 'Poor' },
   ]
 
   const [form, setForm] = useState({
@@ -80,6 +45,42 @@ const ProductForm = () => {
   const [categories, setCategories] = useState([
     { value: 'Select Option', label: 'Select Option' }
   ])
+
+  // Fetch product data if in edit mode
+  useEffect(() => {
+    const fetchProductData = async () => {
+      if (!isEditMode) return
+
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/products/${productId}`)
+        if (!response.ok) throw new Error('Failed to fetch product')
+        
+        const productData = await response.json()
+        
+        // Format the date to YYYY-MM-DD for the date input
+        const formattedDate = new Date(productData.purchase_date)
+          .toISOString()
+          .split('T')[0]
+
+        setForm({
+          name: productData.name,
+          category_id: productData.category_id.toString(),
+          condition: productData.condition,
+          obtained_method: productData.obtained_method,
+          purchase_date: formattedDate,
+          description: productData.description || '',
+          image: null // We don't load the existing image as it can't be displayed in the file input
+        })
+      } catch (error) {
+        setSubmitStatus({
+          type: 'error',
+          message: `Failed to load product: ${error.message}`
+        })
+      }
+    }
+
+    fetchProductData()
+  }, [productId, isEditMode])
 
   const validateForm = () => {
     if (!form.name.trim()) {
@@ -132,9 +133,27 @@ const ProductForm = () => {
         formData.append('image', form.image)
       }
 
-      const response = await fetch('http://127.0.0.1:8000/products/', {
-        method: 'POST',
-        body: formData
+      const url = isEditMode 
+        ? `http://127.0.0.1:8000/products/${productId}`
+        : 'http://127.0.0.1:8000/products/'
+
+      const method = isEditMode ? 'PATCH' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        body: isEditMode 
+          ? JSON.stringify({
+              name: form.name,
+              category_id: categoryId,
+              condition: form.condition,
+              obtained_method: form.obtained_method,
+              purchase_date: purchaseDate,
+              description: form.description
+            })
+          : formData,
+        headers: isEditMode 
+          ? { 'Content-Type': 'application/json' }
+          : undefined
       })
 
       if (!response.ok) {
@@ -153,28 +172,30 @@ const ProductForm = () => {
       const productData = await response.json()
       setSubmitStatus({ 
         type: 'success', 
-        message: 'Product successfully added!' 
+        message: `Product successfully ${isEditMode ? 'updated' : 'added'}!` 
       })
       
-      setForm({
-        name: '',
-        category_id: 'Select Option',
-        condition: 'Select Option',
-        obtained_method: 'Select Option',
-        purchase_date: '',
-        image: null,
-        description: '',
-      })
+      if (!isEditMode) {
+        setForm({
+          name: '',
+          category_id: 'Select Option',
+          condition: 'Select Option',
+          obtained_method: 'Select Option',
+          purchase_date: '',
+          image: null,
+          description: '',
+        })
+      }
 
-      // Navigate to financial information form with the new product ID
+      // Navigate back to inventory after successful submission
       setTimeout(() => {
-        navigate(`/add-financial-information/${productData.product_id}`)
-      }, 1500)
+        navigate('/inventory')
+      }, 500)
 
     } catch (error) {
       setSubmitStatus({ 
         type: 'error', 
-        message: `Failed to submit form: ${error.message}` 
+        message: `Failed to ${isEditMode ? 'update' : 'submit'} form: ${error.message}` 
       })
     } finally {
       setIsSubmitting(false)
@@ -204,44 +225,30 @@ const ProductForm = () => {
     }
   }
 
-  const getCategories = async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/categories', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`)
-      }
-
-      const data = await response.json()
-      return data
-
-    } catch (error) {
-      setSubmitStatus({ 
-        type: 'error', 
-        message: `Failed to fetch categories: ${error.message}` 
-      })
-      return []
-    }
-  }
-
+  // Fetch categories
   useEffect(() => {
-    const fetchData = async () => {
-      const data = await getCategories()
-      const mappedCategories = [
-        { value: 'Select Option', label: 'Select Option' },
-        ...data.map(cat => ({
-          value: cat.category_id.toString(),
-          label: cat.category_name
-        }))
-      ]
-      setCategories(mappedCategories)
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/categories')
+        if (!response.ok) throw new Error(`Error: ${response.status}`)
+        
+        const data = await response.json()
+        const mappedCategories = [
+          { value: 'Select Option', label: 'Select Option' },
+          ...data.map(cat => ({
+            value: cat.category_id.toString(),
+            label: cat.category_name
+          }))
+        ]
+        setCategories(mappedCategories)
+      } catch (error) {
+        setSubmitStatus({ 
+          type: 'error', 
+          message: `Failed to fetch categories: ${error.message}` 
+        })
+      }
     }
-    fetchData()
+    fetchCategories()
   }, [])
 
   return (
@@ -303,11 +310,13 @@ const ProductForm = () => {
             }}
             required
           />
-          <ImageInput 
-            name='image' 
-            title='Image' 
-            onChange={handleFormChange}
-          />
+          {!isEditMode && (
+            <ImageInput 
+              name='image' 
+              title='Image' 
+              onChange={handleFormChange}
+            />
+          )}
         </div>
         
         <div className='lg:col-span-2'>
@@ -322,7 +331,7 @@ const ProductForm = () => {
 
         <div className='w-2/3 mt-8 mx-auto max-w-xs lg:col-start-2 lg:m-0 lg:justify-self-end'>
           <SubmitButton 
-            text={isSubmitting ? 'SUBMITTING...' : 'ADD PRODUCT'} 
+            text={isSubmitting ? 'SUBMITTING...' : isEditMode ? 'UPDATE PRODUCT' : 'ADD PRODUCT'} 
             type="submit"
             disabled={isSubmitting}
           />
