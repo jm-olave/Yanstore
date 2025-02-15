@@ -35,7 +35,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://192.168.2.138:5173",
         "https://yanstoreapi-bzercjhpe2d4aueh.canadacentral-01.azurewebsites.net",
-        "https://magenta-paprenjak-8434f9.netlify.app/",
+        "https://magenta-paprenjak-8434f9.netlify.app",
         "http://172.29.223.73:5173"],  # Add your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
