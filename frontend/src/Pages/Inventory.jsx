@@ -182,7 +182,7 @@ const Inventory = () => {
                     <TableCol text={items.obtained_method} key={`ob_me-${items.sku}`}/>
                     <TableCol text={"1"} key={`quantity-${items.sku}`}/>
                     <TableCol key={`edit-${items.sku}`}>
-                      <NavLink to={`/edit-product/${items.product_id}`} key={`${items.sku}-edit`}>Edit</NavLink>
+                      <NavLink className='text-secondaryBlue font-bold'to={`/edit-product/${items.product_id}`} key={`${items.sku}-edit`}>Edit</NavLink>
                     </TableCol>
                     
                   </TableRow>
