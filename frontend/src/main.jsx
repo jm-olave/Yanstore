@@ -17,6 +17,9 @@ createRoot(document.getElementById('root')).render(
       <Route element={<FormLayout title={'ADD PRODUCT'}/>}>
         <Route path='add-product' element={<ProductForm/>}/>
       </Route>
+      <Route element={<FormLayout title={'EDIT PRODUCT'}/>}>
+        <Route path='edit-product/:productId' element={<ProductForm/>}/>
+      </Route>
       <Route element={<FormLayout title={'ADD CATEGORY'}/>}>
         <Route path='add-category' element={<CategoryForm/>}/>
       </Route>
@@ -24,7 +27,7 @@ createRoot(document.getElementById('root')).render(
         <Route path='inventory' element={<Inventory/>}/>
       </Route>
       <Route element={<FormLayout title={'FINANCIAL INFORMATION'}/>}>
-        <Route path='add-financial-information/${product.id}' element={<FinancialInformationForm/>}/>
+        <Route path='add-financial-information/:productId' element={<FinancialInformationForm/>}/>
       </Route>
       <Route element={<FormLayout title={'PROVIDERS'}/>}>
         <Route path='add-provider' element={<ProviderForm/>}/>

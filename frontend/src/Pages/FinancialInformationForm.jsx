@@ -42,7 +42,7 @@ const FinancialInformationForm = () => {
 
   const fetchProductDetails = async (id) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/products/${id}`)
+      const response = await fetch(`http://127.0.0.1:8000/products/${productId}`)
       if (!response.ok) throw new Error('Failed to fetch product details')
       const data = await response.json()
       setProduct(data)
@@ -85,7 +85,7 @@ const FinancialInformationForm = () => {
       setSubmitStatus({ type: '', message: '' })
 
       // First, create the price point
-      const pricePointResponse = await fetch('http://127.0.0.1:8000/price-points/', {
+      const pricePointResponse = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/price-points/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -101,7 +101,7 @@ const FinancialInformationForm = () => {
       if (!pricePointResponse.ok) throw new Error('Failed to create price point')
 
       // Then, register the sale
-      const saleResponse = await fetch('http://127.0.0.1:8000/sales/', {
+      const saleResponse = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/sales/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -170,14 +170,12 @@ const FinancialInformationForm = () => {
             title="Base Cost"
             value={form.base_cost}
             onChange={handleFormChange}
-            required
           />
           <NumberInput 
             name="selling_price"
             title="Selling Price"
             value={form.selling_price}
             onChange={handleFormChange}
-            required
           />
           <NumberInput 
             name="market_price"
@@ -194,14 +192,12 @@ const FinancialInformationForm = () => {
             value={form.payment_method}
             options={paymentMethods}
             onChange={handleFormChange}
-            required
           />
           <DateInput 
             name="sell_date"
             title="Sale Date"
             value={form.sell_date}
             onChange={handleFormChange}
-            required
           />
           <TextInput 
             name="notes"

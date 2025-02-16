@@ -101,10 +101,11 @@ const ProviderForm = () => {
       setIsSubmitting(true)
       setSubmitStatus({ type: '', message: '' })
 
-      const response = await fetch('http://127.0.0.1:8000/suppliers', {
+      const response = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/suppliers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(form)
       })

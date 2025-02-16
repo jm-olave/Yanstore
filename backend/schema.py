@@ -204,6 +204,7 @@ class ProductUpdate(BaseModel):
     condition: Optional[str] = None
     is_active: Optional[bool] = None
     category_id: Optional[int] = None
+    obtained_method: Optional[str] = None
 
     class Config:
         form_attributes = True
