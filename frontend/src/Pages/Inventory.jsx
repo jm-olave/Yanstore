@@ -159,14 +159,14 @@ const Inventory = () => {
           <table className='w-full min-w-[800px]'>
             <thead className='font-Mulish font-black text-secondaryBlue'>
               <TableRow>
-                <TableCol text='NAME' key='NAME'/>
                 <TableCol text='SKU' key='SKU'/>
+                <TableCol text='NAME' key='NAME'/>
                 {/* <TableCol text='PRICE' key='PRICE'/> */}
                 <TableCol text='DESC' key='DESC'/>
                 <TableCol text='CONDITION' key='CONDITION'/>
                 <TableCol text='CATEGORY' key='CATEGORY'/>
                 <TableCol text='OBT METHOD' key='OBT-METHOD'/>
-                <TableCol text='CUANTITY' key='CUANTITY'/>
+                <TableCol text='LOCATION' key='LOCATION'/>
                 <TableCol text='EDIT' key='EDIT'/>
               </TableRow>
             </thead>
@@ -174,14 +174,14 @@ const Inventory = () => {
               {
                 products.map(items => (
                   <TableRow key={items.sku}>                
-                    <TableCol text={items.name} key={`name-${items.sku}`}/>
                     <TableCol text={items.sku} key={`sku-${items.sku}`}/>
+                    <TableCol text={items.name} key={`name-${items.sku}`}/>
                     {/* <TableCol text={items.current_price} key={`price-${items.sku}`}/> */}
                     <TableCol text={items.description} key={`desc-${items.sku}`}/>
                     <TableCol text={items.condition} key={`cond-${items.sku}`}/>
                     <TableCol text={items.category.category_name} key={`cat-${items.sku}`}/>
                     <TableCol text={items.obtained_method} key={`ob_me-${items.sku}`}/>
-                    <TableCol text={"1"} key={`quantity-${items.sku}`}/>
+                    <TableCol text={"Colombia"} key={`location-${items.sku}`}/>
                     <TableCol key={`edit-${items.sku}`}>
                       <NavLink className='text-secondaryBlue font-bold'to={`/edit-product/${items.product_id}`} key={`${items.sku}-edit`}>Edit</NavLink>
                     </TableCol>
