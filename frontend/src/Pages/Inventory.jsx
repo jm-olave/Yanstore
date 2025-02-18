@@ -115,12 +115,15 @@ let items = [
     "available_quantity": null
   }
 ]
+
+const apiURL = import.meta.env.VITE_API_URL
+
 const Inventory = () => {
   const [products, setProducts] = useState([])
 
   const getProducts = async () => {
     try {
-      const response = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/products', {
+      const response = await fetch(`${apiURL}/products`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -154,7 +157,7 @@ const Inventory = () => {
 
   return (
     <div className="w-full overflow-x-hidden">
-      <section className='w-11/12 mx-auto max-w-5xl'>
+      <section className='w-11/12 mx-auto max-w-7xl'>
         <div className='overflow-x-auto relative'>
           <table className='w-full min-w-[800px]'>
             <thead className='font-Mulish font-black text-secondaryBlue'>
@@ -167,7 +170,9 @@ const Inventory = () => {
                 <TableCol text='CATEGORY' key='CATEGORY'/>
                 <TableCol text='OBT METHOD' key='OBT-METHOD'/>
                 <TableCol text='LOCATION' key='LOCATION'/>
+                <TableCol text='IMAGE' key='IMAGE'/>
                 <TableCol text='EDIT' key='EDIT'/>
+                <TableCol text='DELETE' key='DELETE'/>
               </TableRow>
             </thead>
             <tbody className='font-Josefin align-middle'>
@@ -182,10 +187,15 @@ const Inventory = () => {
                     <TableCol text={items.category.category_name} key={`cat-${items.sku}`}/>
                     <TableCol text={items.obtained_method} key={`ob_me-${items.sku}`}/>
                     <TableCol text={"Colombia"} key={`location-${items.sku}`}/>
+                    <TableCol key={`image-${items.sku}`}>
+                      <NavLink className='text-secondaryBlue font-bold' key={`${items.sku}-image`}>Image</NavLink>
+                    </TableCol>
                     <TableCol key={`edit-${items.sku}`}>
                       <NavLink className='text-secondaryBlue font-bold'to={`/edit-product/${items.product_id}`} key={`${items.sku}-edit`}>Edit</NavLink>
                     </TableCol>
-                    
+                    <TableCol key={`delete-${items.sku}`}>
+                      <p className='text-mainRed font-bold' key={`${items.sku}-delete`}>Delete</p>
+                    </TableCol>
                   </TableRow>
                 ))
               }

@@ -43,6 +43,8 @@ const paymentTermsOptions = [
   
 ]
 
+const apiURL = import.meta.env.VITE_API_URL
+
 const ProviderForm = () => {
   const [form, setForm] = useState({
     name: '',
@@ -101,7 +103,7 @@ const ProviderForm = () => {
       setIsSubmitting(true)
       setSubmitStatus({ type: '', message: '' })
 
-      const response = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/suppliers', {
+      const response = await fetch(`${apiURL}/suppliers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -2,10 +2,14 @@ import React, { useState } from 'react'
 import TextInput from '../Components/TextInput/TextInput'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
 
+const apiURL = import.meta.env.VITE_API_URL
+
 const CategoryForm = () => {
   const [form, setForm] = useState({
     category_name: ''
   })
+
+  console.log(apiURL)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' })
@@ -30,7 +34,7 @@ const CategoryForm = () => {
       setIsSubmitting(true)
       setSubmitStatus({ type: '', message: '' })
 
-      const response = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/categories', {
+      const response = await fetch(`${apiURL}/categories`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
