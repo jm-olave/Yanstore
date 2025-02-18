@@ -23,6 +23,7 @@ class Product(Base):
     category_id = Column(Integer, ForeignKey('product_categories.category_id'))
     name = Column(String(200), nullable=False)
     description = Column(String)
+    location = Column(String(100))
     condition = Column(String(20), nullable=False) 
     is_active = Column(Boolean, default=True)
     purchase_date = Column(Date)  # Changed from DateTime to Date

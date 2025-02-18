@@ -16,6 +16,7 @@ class ProductBase(BaseModel):
     sku: str = Field(..., min_length=3, max_length=50)
     description: Optional[str] = None
     condition: str = Field(..., pattern='^(Mint|Near Mint|Excelent|Good|Lightly Played|Played|Poor)$')
+    location: Optional[str] = Field(None, max_length=100)
     purchase_date: date
     obtained_method: str = Field(..., min_length=1, max_length=50)
 
@@ -205,6 +206,7 @@ class ProductUpdate(BaseModel):
     is_active: Optional[bool] = None
     category_id: Optional[int] = None
     obtained_method: Optional[str] = None
+    location: Optional[str] = Field(None, max_length=100)
 
     class Config:
         form_attributes = True

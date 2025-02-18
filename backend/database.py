@@ -5,15 +5,16 @@ from dotenv import load_dotenv
 import os
 import logging
 from dataclasses import dataclass
+import time
+from sqlalchemy.exc import OperationalError
 
-# Set up logging to help us understand database operations
+# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv(".env.development")
 
-# Create settings dictionary directly from environment variables
 @dataclass
 class DatabaseSettings:
     ENV: str = os.getenv('ENV')
@@ -26,93 +27,76 @@ class DatabaseSettings:
 # Create settings instance
 settings = DatabaseSettings()
 
-# Get settings from config
-
-
-# Construct the database URL using settings
+# Construct database URL
 DATABASE_URL = f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 
-# Create the SQLAlchemy engine with important configuration options
-engine = create_engine(
-    DATABASE_URL,
-    # Echo SQL statements for debugging (only in development)
-    echo=settings.ENV == "development",
-    
-    
+def create_db_engine():
+    return create_engine(
+        DATABASE_URL,
+        echo=settings.ENV == "development",
+        pool_pre_ping=True,  # Enables automatic reconnection
+        pool_recycle=300,    # Recycle connections every 5 minutes
+        pool_size=5,         # Maintain a pool of 5 connections
+        max_overflow=10,     # Allow up to 10 additional connections
+        connect_args={
+            "application_name": f"YanStore Backend ({settings.ENV})",
+            "client_encoding": "utf8",
+            "connect_timeout": 10,
+            "keepalives": 1,              # Enable keepalive
+            "keepalives_idle": 30,        # Seconds between keepalive probes
+            "keepalives_interval": 10,    # Seconds between probes
+            "keepalives_count": 5         # Number of probes before connection is considered dead
+        }
+    )
 
-    
-    # Enable automatic reconnection if connection is lost
-    pool_pre_ping=True,
-    
-    # Connection arguments for better performance and security
-    connect_args={
-        "application_name": f"YanStore Backend ({settings.ENV})",
-        "client_encoding": "utf8",
-        "connect_timeout": 10
-    }
-)
+# Create engine with connection pooling and automatic reconnection
+engine = create_db_engine()
 
-# Create session factory
+# Create session factory with retry logic
 SessionLocal = sessionmaker(
     bind=engine,
     autocommit=False,
     autoflush=False
 )
 
-# Create base class for declarative models
 Base = declarative_base()
-
-def init_db():
-    """
-    Drops all tables and recreates them from scratch.
-    Only allowed in development environment for safety.
-    """
-
-    try:
-        Base.metadata.drop_all(bind=engine)
-        logger.info("Dropped all existing tables")
-        
-        Base.metadata.create_all(bind=engine)
-        logger.info("Created new tables successfully")
-    except Exception as e:
-        logger.error(f"Database initialization failed: {str(e)}")
-        raise
 
 def get_db():
     """
-    Dependency function that creates a new database session for each request.
-    Used by FastAPI's dependency injection system.
+    Dependency function that creates a new database session for each request
+    with retry logic for handling connection issues.
     """
     db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    max_retries = 3
+    retry_delay = 1  # seconds
+
+    for attempt in range(max_retries):
+        try:
+            yield db
+            break
+        except OperationalError as e:
+            if attempt == max_retries - 1:
+                logger.error(f"Failed to connect to database after {max_retries} attempts")
+                raise
+            logger.warning(f"Database connection attempt {attempt + 1} failed, retrying...")
+            time.sleep(retry_delay)
+        finally:
+            db.close()
 
 def verify_db_connection():
-    """
-    Verify that we can connect to the database.
-    Useful for health checks and initial setup verification.
-    """
-    try:
-        with engine.connect() as connection:
-            connection.execute("SELECT 1")
-            logger.info(f"Database connection verified successfully in {settings.ENV} environment")
-            return True
-    except Exception as e:
-        logger.error(f"Database connection verification failed: {str(e)}")
-        return False
+    """Verify database connection with retry logic"""
+    max_retries = 3
+    retry_delay = 1
 
-def get_db_config():
-    """
-    Get the current database configuration.
-    Useful for debugging and verification.
-    """
-    return {
-        "environment": settings.ENV,
-        "host": settings.DB_HOST,
-        "port": settings.DB_PORT,
-        "database": settings.DB_NAME,
-        "user": settings.DB_USER,
-        "connected": verify_db_connection()
-    }
+    for attempt in range(max_retries):
+        try:
+            with engine.connect() as connection:
+                connection.execute("SELECT 1")
+                logger.info(f"Database connection verified successfully in {settings.ENV} environment")
+                return True
+        except Exception as e:
+            if attempt == max_retries - 1:
+                logger.error(f"Database connection verification failed: {str(e)}")
+                return False
+            logger.warning(f"Connection attempt {attempt + 1} failed, retrying...")
+            time.sleep(retry_delay)
