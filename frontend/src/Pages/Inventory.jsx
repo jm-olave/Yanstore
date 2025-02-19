@@ -120,6 +120,7 @@ const apiURL = import.meta.env.VITE_API_URL
 
 const Inventory = () => {
   const [products, setProducts] = useState([])
+  const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' })
 
   const getProducts = async () => {
     try {
@@ -157,6 +158,11 @@ const Inventory = () => {
 
   return (
     <div className="w-full overflow-x-hidden">
+      {submitStatus.message && (
+        <div className={`mb-4 p-4 rounded-md ${submitStatus.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+          {submitStatus.message}
+        </div>
+      )}
       <section className='w-11/12 mx-auto max-w-7xl'>
         <div className='overflow-x-auto relative'>
           <table className='w-full min-w-[800px]'>

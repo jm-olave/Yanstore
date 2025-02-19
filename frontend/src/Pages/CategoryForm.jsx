@@ -9,8 +9,6 @@ const CategoryForm = () => {
     category_name: ''
   })
 
-  console.log(apiURL)
-
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' })
 

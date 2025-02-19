@@ -16,6 +16,13 @@ const obtainingMethods = [
 
 const conditions = [
   { value: 'Select Option', label: 'Select Option' },
+  { value: 'New', label: 'New' },
+  { value: 'Used', label: 'Used' },
+  { value: 'Damaged', label: 'Damaged' },
+]
+
+const cardConditions = [
+  { value: 'Select Option', label: 'Select Option' },
   { value: 'Mint', label: 'Mint' },
   { value: 'Near Mint', label: 'Near Mint' },
   { value: 'Excellent', label: 'Excellent' },
@@ -23,6 +30,12 @@ const conditions = [
   { value: 'Lightly Played', label: 'Lightly Played' },
   { value: 'Played', label: 'Played' },
   { value: 'Poor', label: 'Poor' },
+]
+
+const locations = [
+  { value: 'Select Option', label: 'Select Option' },
+  { value: 'Colombia', label: 'Colombia' },
+  { value: 'USA', label: 'USA' },
 ]
 
 const apiURL = import.meta.env.VITE_API_URL
@@ -38,6 +51,7 @@ const ProductForm = () => {
     condition: 'Select Option',
     obtained_method: 'Select Option',
     purchase_date: '',
+    location: 'Select Option',
     image: null,
     description: '',
   })
@@ -45,7 +59,11 @@ const ProductForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' })
   const [categories, setCategories] = useState([
-    { value: 'Select Option', label: 'Select Option' }
+    { value: 'Select Option', label: 'Select Option' },
+    { value: 'Playmat', label: 'Playmat' },
+    { value: 'Deckbox', label: 'Deckbox' },
+    { value: 'Sleeves', label: 'Sleeves' },
+    { value: 'Card', label: 'Card' },
   ])
 
   // Fetch product data if in edit mode
@@ -70,6 +88,7 @@ const ProductForm = () => {
           condition: productData.condition,
           obtained_method: productData.obtained_method,
           purchase_date: formattedDate,
+          location: productData.location,
           description: productData.description || '',
           image: null // We don't load the existing image as it can't be displayed in the file input
         })
@@ -101,6 +120,10 @@ const ProductForm = () => {
       setSubmitStatus({ type: 'error', message: 'Please select an obtaining method' })
       return false
     }
+    if (form.location === 'Select Option') {
+      setSubmitStatus({ type: 'error', message: 'Please select a location' })
+      return false
+    }
     if (!form.purchase_date) {
       setSubmitStatus({ type: 'error', message: 'Purchase date is required' })
       return false
@@ -128,6 +151,7 @@ const ProductForm = () => {
       formData.append('category_id', categoryId)
       formData.append('condition', form.condition)
       formData.append('obtained_method', form.obtained_method)
+      formData.append('location', form.location)
       formData.append('purchase_date', purchaseDate)
       formData.append('description', form.description || '')
       
@@ -149,6 +173,7 @@ const ProductForm = () => {
               category_id: categoryId,
               condition: form.condition,
               obtained_method: form.obtained_method,
+              location: form.location,
               purchase_date: purchaseDate,
               description: form.description
             })
@@ -184,6 +209,7 @@ const ProductForm = () => {
           condition: 'Select Option',
           obtained_method: 'Select Option',
           purchase_date: '',
+          location: 'Select Option',
           image: null,
           description: '',
         })
@@ -283,7 +309,16 @@ const ProductForm = () => {
             name='condition' 
             title='Condition' 
             value={form.condition} 
-            options={conditions} 
+            options={form.category_id == 'Card' ? cardConditions : conditions} 
+            onChange={handleFormChange}
+            required
+          />
+
+          <InputSelect 
+            name='location' 
+            title='Location' 
+            value={form.location} 
+            options={locations} 
             onChange={handleFormChange}
             required
           />
