@@ -107,6 +107,7 @@ async def create_product(
     description: Optional[str] = Form(None),
     condition: str = Form(...),
     purchase_date: datetime = Form(...),
+    location: Optional[str] = Form(None),
     obtained_method: str = Form(...),
     initial_quantity: Optional[int] = Form(1),
     image: Optional[UploadFile] = File(None),
@@ -157,6 +158,7 @@ async def create_product(
             description=description,
             condition=condition,
             purchase_date = purchase_date,
+            location = location,
             obtained_method = obtained_method
         )
         db.add(db_product)
