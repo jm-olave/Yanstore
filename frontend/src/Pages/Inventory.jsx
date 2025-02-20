@@ -3,7 +3,8 @@ import ProductCard from '../Components/ProductCard/ProductCard'
 import TableRow from '../Components/TableRow/TableRow'
 import TableCol from '../Components/TableCol/TableCol'
 import { NavLink } from 'react-router'
-
+import ModalImage from '../Components/ModalImage/ModalImage'
+import TestImage from '../Images/ImagePlaceholder.png'
 
 let items = [
   {
@@ -121,6 +122,29 @@ const apiURL = import.meta.env.VITE_API_URL
 const Inventory = () => {
   const [products, setProducts] = useState([])
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' })
+  const [modalData, setModalData] = useState({
+    open: false,
+    img: '',
+    caption: ''
+  })
+
+  const modalHandler = (e, itemData = null) => {
+    if (itemData) {
+      // Opening modal with image
+      setModalData({
+        open: true,
+        img: TestImage, // Using placeholder image for now
+        caption: itemData.name
+      })
+    } else {
+      // Closing modal
+      setModalData({
+        open: false,
+        img: '',
+        caption: ''
+      })
+    }
+  }
 
   const getProducts = async () => {
     try {
@@ -142,74 +166,92 @@ const Inventory = () => {
     } catch (error) {
       setSubmitStatus({ 
         type: 'error', 
-        message: `Failed to fetch categories: ${error.message}` 
+        message: `Failed to fetch products: ${error.message}` 
       })
       return []
     }
   }
 
   useEffect(() => {
-      const fetchData = async () => {
-        const data = await getProducts()
-        setProducts(data)
-      }
-      fetchData()
-    }, [])
+    const fetchData = async () => {
+      const data = await getProducts()
+      setProducts(data)
+    }
+    fetchData()
+  }, [])
 
   return (
-    <div className="w-full overflow-x-hidden">
-      {submitStatus.message && (
-        <div className={`mb-4 p-4 rounded-md ${submitStatus.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-          {submitStatus.message}
-        </div>
-      )}
-      <section className='w-11/12 mx-auto max-w-7xl'>
-        <div className='overflow-x-auto relative'>
-          <table className='w-full min-w-[800px]'>
-            <thead className='font-Mulish font-black text-secondaryBlue'>
-              <TableRow>
-                <TableCol text='SKU' key='SKU'/>
-                <TableCol text='NAME' key='NAME'/>
-                {/* <TableCol text='PRICE' key='PRICE'/> */}
-                <TableCol text='DESC' key='DESC'/>
-                <TableCol text='CONDITION' key='CONDITION'/>
-                <TableCol text='CATEGORY' key='CATEGORY'/>
-                <TableCol text='OBT METHOD' key='OBT-METHOD'/>
-                <TableCol text='LOCATION' key='LOCATION'/>
-                <TableCol text='IMAGE' key='IMAGE'/>
-                <TableCol text='EDIT' key='EDIT'/>
-                <TableCol text='DELETE' key='DELETE'/>
-              </TableRow>
-            </thead>
-            <tbody className='font-Josefin align-middle'>
-              {
-                products.map(items => (
-                  <TableRow key={items.sku}>                
-                    <TableCol text={items.sku} key={`sku-${items.sku}`}/>
-                    <TableCol text={items.name} key={`name-${items.sku}`}/>
-                    {/* <TableCol text={items.current_price} key={`price-${items.sku}`}/> */}
-                    <TableCol text={items.description} key={`desc-${items.sku}`}/>
-                    <TableCol text={items.condition} key={`cond-${items.sku}`}/>
-                    <TableCol text={items.category.category_name} key={`cat-${items.sku}`}/>
-                    <TableCol text={items.obtained_method} key={`ob_me-${items.sku}`}/>
-                    <TableCol text={"Colombia"} key={`location-${items.sku}`}/>
-                    <TableCol key={`image-${items.sku}`}>
-                      <NavLink className='text-secondaryBlue font-bold' key={`${items.sku}-image`}>Image</NavLink>
+    <>
+      <ModalImage data={modalData} handler={modalHandler}/>
+      <div className="w-full overflow-x-hidden">
+        {submitStatus.message && (
+          <div className={`mb-4 p-4 rounded-md ${
+            submitStatus.type === 'error' 
+              ? 'bg-red-50 text-red-700' 
+              : 'bg-green-50 text-green-700'
+          }`}>
+            {submitStatus.message}
+          </div>
+        )}
+        <section className='w-11/12 mx-auto max-w-7xl'>
+          <div className='overflow-x-auto relative'>
+            <table className='w-full min-w-[800px]'>
+              <thead className='font-Mulish font-black text-secondaryBlue'>
+                <TableRow>
+                  <TableCol text='SKU'/>
+                  <TableCol text='NAME'/>
+                  <TableCol text='DESC'/>
+                  <TableCol text='CONDITION'/>
+                  <TableCol text='CATEGORY'/>
+                  <TableCol text='OBT METHOD'/>
+                  <TableCol text='LOCATION'/>
+                  <TableCol text='IMAGE'/>
+                  <TableCol text='EDIT'/>
+                  <TableCol text='DELETE'/>
+                </TableRow>
+              </thead>
+              <tbody className='font-Josefin align-middle'>
+                {items.map(item => (
+                  <TableRow key={item.sku}>            
+                    <TableCol text={item.sku}/>
+                    <TableCol text={item.name}/>
+                    <TableCol text={item.description}/>
+                    <TableCol text={item.condition}/>
+                    <TableCol text={item.category?.category_name}/>
+                    <TableCol text={item.obtained_method}/>
+                    <TableCol text={"Colombia"}/>
+                    <TableCol>
+                      <div 
+                        onClick={(e) => modalHandler(e, item)} 
+                        className='text-secondaryBlue font-bold cursor-pointer hover:text-blue-700'
+                      >
+                        View Image
+                      </div>
                     </TableCol>
-                    <TableCol key={`edit-${items.sku}`}>
-                      <NavLink className='text-secondaryBlue font-bold'to={`/edit-product/${items.product_id}`} key={`${items.sku}-edit`}>Edit</NavLink>
+                    <TableCol>
+                      <NavLink 
+                        className='text-secondaryBlue font-bold hover:text-blue-700'
+                        to={`/edit-product/${item.product_id}`}
+                      >
+                        Edit
+                      </NavLink>
                     </TableCol>
-                    <TableCol key={`delete-${items.sku}`}>
-                      <p className='text-mainRed font-bold' key={`${items.sku}-delete`}>Delete</p>
+                    <TableCol>
+                      <button 
+                        className='text-mainRed font-bold hover:text-red-700'
+                        onClick={() => console.log('delete to do')}
+                      >
+                        Delete
+                      </button>
                     </TableCol>
                   </TableRow>
-                ))
-              }
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </>
   )
 }
 
