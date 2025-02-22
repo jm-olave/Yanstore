@@ -1,102 +1,193 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
 import logging
 from dataclasses import dataclass
-import time
-from sqlalchemy.exc import OperationalError
 
-# Set up logging
+# Set up logging to help us understand database operations
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv(".env.development")
 
+# Create settings dictionary directly from environment variables
 @dataclass
 class DatabaseSettings:
-    ENV: str = os.getenv('ENV')
-    DB_USER: str = os.getenv('DB_USER')
-    DB_PASSWORD: str = os.getenv('DB_PASSWORD')
-    DB_HOST: str = os.getenv('DB_HOST')
+    ENV: str = os.getenv('ENV', 'development')
+    DB_USER: str = os.getenv('DB_USER', 'postgres')
+    DB_PASSWORD: str = os.getenv('DB_PASSWORD', '')
+    DB_HOST: str = os.getenv('DB_HOST', 'localhost')
     DB_PORT: str = os.getenv('DB_PORT', '5432')
-    DB_NAME: str = os.getenv('DB_NAME')
+    DB_NAME: str = os.getenv('DB_NAME', 'yanstore')
 
-# Create settings instance
+    def validate(self):
+        """Validate that all required settings are present"""
+        missing = []
+        for field in ['DB_USER', 'DB_HOST', 'DB_NAME']:
+            if not getattr(self, field):
+                missing.append(field)
+        if missing:
+            raise ValueError(f"Missing required database settings: {', '.join(missing)}")
+
+# Create settings instance and validate
 settings = DatabaseSettings()
+try:
+    settings.validate()
+except ValueError as e:
+    logger.error(f"Database configuration error: {str(e)}")
+    raise
 
-# Construct database URL
+# Log the configuration (without sensitive data)
+logger.info(f"Database Configuration - Host: {settings.DB_HOST}, "
+            f"Port: {settings.DB_PORT}, Database: {settings.DB_NAME}, "
+            f"User: {settings.DB_USER}")
+
+# Construct the database URL using settings
 DATABASE_URL = f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 
-def create_db_engine():
-    return create_engine(
-        DATABASE_URL,
-        echo=settings.ENV == "development",
-        pool_pre_ping=True,  # Enables automatic reconnection
-        pool_recycle=300,    # Recycle connections every 5 minutes
-        pool_size=5,         # Maintain a pool of 5 connections
-        max_overflow=10,     # Allow up to 10 additional connections
-        connect_args={
-            "application_name": f"YanStore Backend ({settings.ENV})",
-            "client_encoding": "utf8",
-            "connect_timeout": 10,
-            "keepalives": 1,              # Enable keepalive
-            "keepalives_idle": 30,        # Seconds between keepalive probes
-            "keepalives_interval": 10,    # Seconds between probes
-            "keepalives_count": 5         # Number of probes before connection is considered dead
-        }
-    )
+# Create the SQLAlchemy engine with important configuration options
+engine = create_engine(
+    DATABASE_URL,
+    # Echo SQL statements for debugging (only in development)
+    echo=settings.ENV == "development",
+    
+    # Enable automatic reconnection if connection is lost
+    pool_pre_ping=True,
+    
+    # Connection arguments for better performance and security
+    connect_args={
+        "application_name": f"YanStore Backend ({settings.ENV})",
+        "client_encoding": "utf8",
+        "connect_timeout": 10
+    }
+)
 
-# Create engine with connection pooling and automatic reconnection
-engine = create_db_engine()
-
-# Create session factory with retry logic
+# Create session factory
 SessionLocal = sessionmaker(
     bind=engine,
     autocommit=False,
     autoflush=False
 )
 
+# Create base class for declarative models
 Base = declarative_base()
+
+def init_db():
+    """
+    Initialize database tables if they don't exist.
+    No longer drops existing tables to preserve data.
+    """
+    try:
+        # Check if tables exist by trying to query one of the main tables
+        with engine.connect() as connection:
+            # Try to query the products table as a test
+            result = connection.execute(text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'products')"))
+            table_exists = result.scalar()
+            
+            
+            if not table_exists:
+                logger.info("Tables don't exist. Creating new tables...")
+                Base.metadata.create_all(bind=engine)
+                logger.info("Created new tables successfully")
+                # Create default categories after tables are created
+                create_default_categories()
+            else:
+                logger.info("Tables already exist. Skipping initialization.")
+            
+                
+    except Exception as e:
+        logger.error(f"Database initialization check failed: {str(e)}")
+        raise
+
+def create_default_categories():
+    """
+    Create default product categories if they don't exist.
+    """
+    from models import ProductCategory
+    
+    default_categories = [
+        "Playmat",
+        "Deckbox",
+        "Sleeves",
+        "Card"
+    ]
+    
+    db = SessionLocal()
+    try:
+        for category_name in default_categories:
+            # Check if category already exists
+            existing_category = db.query(ProductCategory).filter(
+                ProductCategory.category_name == category_name
+            ).first()
+            
+            if not existing_category:
+                new_category = ProductCategory(
+                    category_name=category_name,
+                    parent_category_id=None
+                )
+                db.add(new_category)
+                logger.info(f"Created default category: {category_name}")
+        
+        db.commit()
+        logger.info("Default categories check/creation completed")
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating default categories: {str(e)}")
+        raise
+    finally:
+        db.close()
+
+def first_time_init():
+    """
+    First time initialization function that creates all tables.
+    Should only be used for first deployment or when explicitly needed.
+    """
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Created all tables successfully")
+    except Exception as e:
+        logger.error(f"First time database initialization failed: {str(e)}")
+        raise
 
 def get_db():
     """
-    Dependency function that creates a new database session for each request
-    with retry logic for handling connection issues.
+    Dependency function that creates a new database session for each request.
+    Used by FastAPI's dependency injection system.
     """
     db = SessionLocal()
-    max_retries = 3
-    retry_delay = 1  # seconds
-
-    for attempt in range(max_retries):
-        try:
-            yield db
-            break
-        except OperationalError as e:
-            if attempt == max_retries - 1:
-                logger.error(f"Failed to connect to database after {max_retries} attempts")
-                raise
-            logger.warning(f"Database connection attempt {attempt + 1} failed, retrying...")
-            time.sleep(retry_delay)
-        finally:
-            db.close()
+    try:
+        yield db
+    finally:
+        db.close()
 
 def verify_db_connection():
-    """Verify database connection with retry logic"""
-    max_retries = 3
-    retry_delay = 1
+    """
+    Verify that we can connect to the database.
+    Useful for health checks and initial setup verification.
+    """
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+            logger.info(f"Database connection verified successfully in {settings.ENV} environment")
+            return True
+    except Exception as e:
+        logger.error(f"Database connection verification failed: {str(e)}")
+        return False
 
-    for attempt in range(max_retries):
-        try:
-            with engine.connect() as connection:
-                connection.execute("SELECT 1")
-                logger.info(f"Database connection verified successfully in {settings.ENV} environment")
-                return True
-        except Exception as e:
-            if attempt == max_retries - 1:
-                logger.error(f"Database connection verification failed: {str(e)}")
-                return False
-            logger.warning(f"Connection attempt {attempt + 1} failed, retrying...")
-            time.sleep(retry_delay)
+def get_db_config():
+    """
+    Get the current database configuration.
+    Useful for debugging and verification.
+    """
+    return {
+        "environment": settings.ENV,
+        "host": settings.DB_HOST,
+        "port": settings.DB_PORT,
+        "database": settings.DB_NAME,
+        "user": settings.DB_USER,
+        "connected": verify_db_connection()
+    }
