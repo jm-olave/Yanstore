@@ -9,6 +9,9 @@ import logging
 import argparse
 import os
 
+from fastapi import Response, HTTPException
+from fastapi.responses import StreamingResponse
+from io import BytesIO
 
 # Import modules
 from database import get_db, init_db, engine
@@ -135,7 +138,7 @@ async def create_product(
         # 3. Combine the category prefix with timestamp to create the SKU
         sku = f"{category_prefix}{timestamp}"
         # Validate the condition value explicitly
-        valid_conditions = ["Mint", "Near Mint", "Excelent", "Good", "Lightly Played", "Played", "Poor","New", "Used", "Damaged"]
+        valid_conditions = ["Mint", "Near Mint", "Excelent", "Good", "Lightly Played", "Played", "Poor", "New", "Used", "Damaged"]
         if condition not in valid_conditions:
             raise HTTPException(
                 status_code=400,
@@ -284,7 +287,38 @@ def update_product(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Invalid update data")
+
+@app.get("/products/{product_id}/image", response_class=Response)
+def get_product_image(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get the primary image for a product"""
+    # Find the primary image for this product
+    product_image = db.query(models.ProductImage).filter(
+        models.ProductImage.product_id == product_id,
+        models.ProductImage.is_primary == True
+    ).first()
     
+    # If no primary image found, try to get any image for this product
+    if not product_image:
+        product_image = db.query(models.ProductImage).filter(
+            models.ProductImage.product_id == product_id
+        ).first()
+    
+    # If no image is found, return a 404
+    if not product_image:
+        raise HTTPException(status_code=404, detail="No image found for this product")
+    
+    # Determine the content type based on image_type
+    content_type = "image/jpeg" if product_image.image_type == "jpg" else "image/png"
+    
+    # Return the image as a streaming response
+    return StreamingResponse(
+        BytesIO(product_image.image_data),
+        media_type=content_type
+    )
+
 
 # Supplier endpoints
 @app.post("/suppliers/", response_model=schema.SupplierResponse)

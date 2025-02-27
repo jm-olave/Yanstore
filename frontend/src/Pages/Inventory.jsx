@@ -16,29 +16,26 @@ const Inventory = () => {
     open: false,
     img: '',
     caption: '',
+    productId: null
   })
 
-  const modalHandler = (e) => {
-    const productData = e.currentTarget.getAttribute('data-product')
-    
-    try {
-      const product = JSON.parse(productData)
-      
-      if (modalData.open === false) {
-        setModalData({
-          open: true,
-          img: TestImage, // Use actual image data when available
-          caption: product.name,
-        })
-      } else {
-        setModalData({
-          open: false,
-          img: '',
-          caption: '',
-        })
-      }
-    } catch (error) {
-      console.error('Error parsing product data:', error)
+  const modalHandler = (productId, productName) => {
+    if (modalData.open === false) {
+      // When opening the modal, set the product ID and name
+      setModalData({
+        open: true,
+        img: `${apiURL}/products/${productId}/image`,
+        caption: productName,
+        productId: productId
+      })
+    } else {
+      // When closing the modal
+      setModalData({
+        open: false,
+        img: '',
+        caption: '',
+        productId: null
+      })
     }
   }
 
@@ -119,9 +116,21 @@ const Inventory = () => {
   // Use the fetched products if available, otherwise use fallback data
   const displayItems = products.length > 0 ? products : fallbackItems
 
+  // Function to handle image errors
+  const handleImageError = () => {
+    setModalData(prev => ({
+      ...prev,
+      img: TestImage, // Fallback to the test image if loading fails
+    }))
+  }
+
   return (
     <>
-      <ModalImage data={modalData} handler={modalHandler}/>
+      <ModalImage 
+        data={modalData} 
+        handler={() => setModalData(prev => ({ ...prev, open: false }))}
+        onImageError={handleImageError}
+      />
       <div className="w-full overflow-x-hidden">
         {submitStatus.message && (
           <div className={`mb-4 p-4 rounded-md ${submitStatus.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
@@ -156,15 +165,14 @@ const Inventory = () => {
                     <TableRow key={item.sku || `item-${item.product_id}`}>            
                       <TableCol text={item.sku} key={`sku-${item.sku}`}/>
                       <TableCol text={item.name} key={`name-${item.sku}`}/>
-                      <TableCol text={item.description} key={`desc-${item.sku}`}/>
+                      <TableCol text={item.description || "N/A"} key={`desc-${item.sku}`}/>
                       <TableCol text={item.condition} key={`cond-${item.sku}`}/>
                       <TableCol text={item.category?.category_name || 'Unknown'} key={`cat-${item.sku}`}/>
                       <TableCol text={item.obtained_method} key={`ob_me-${item.sku}`}/>
                       <TableCol text={item.location || "N/A"} key={`location-${item.sku}`}/>
                       <TableCol key={`image-${item.sku}`}>
                         <button 
-                          onClick={modalHandler} 
-                          data-product={JSON.stringify(item)}
+                          onClick={() => modalHandler(item.product_id, item.name)}
                           className='text-secondaryBlue font-bold cursor-pointer'
                         >
                           View
