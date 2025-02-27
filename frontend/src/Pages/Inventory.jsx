@@ -4,6 +4,7 @@ import TableRow from '../Components/TableRow/TableRow'
 import TableCol from '../Components/TableCol/TableCol'
 import ModalImage from '../Components/ModalImage/ModalImage'
 import TestImage from '../Images/ImagePlaceholder.png'
+import DeleteProductModal from '../Components/DeleteProductModal/DeleteProductModal'
 
 // Get API URL from environment variables or use a default
 const apiURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
@@ -17,6 +18,12 @@ const Inventory = () => {
     img: '',
     caption: '',
     productId: null
+  })
+
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    show: false,
+    productId: null,
+    productName: ''
   })
 
   const modalHandler = (productId, productName) => {
@@ -42,7 +49,6 @@ const Inventory = () => {
   const getProducts = async () => {
     try {
       setLoading(true)
-      console.log('Fetching products from:', `${apiURL}/products/`)
       
       const response = await fetch(`${apiURL}/products/`, {
         method: 'GET',
@@ -56,7 +62,6 @@ const Inventory = () => {
       }
 
       const data = await response.json()
-      console.log('Products data:', data)
       return data
 
     } catch (error) {
@@ -71,6 +76,64 @@ const Inventory = () => {
     }
   }
 
+  const showDeleteConfirmation = (productId, productName) => {
+    setDeleteConfirmation({
+      show: true,
+      productId,
+      productName
+    })
+  }
+
+  const hideDeleteConfirmation = () => {
+    setDeleteConfirmation({
+      show: false,
+      productId: null,
+      productName: ''
+    })
+  }
+
+  const handleDeleteProduct = async () => {
+    try {
+      const productId = deleteConfirmation.productId
+      
+      if (!productId) return
+      
+      const response = await fetch(`${apiURL}/products/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`)
+      }
+
+      const result = await response.json()
+      
+      // Remove the product from the state
+      setProducts(products.filter(product => product.product_id !== productId))
+      
+      setSubmitStatus({ 
+        type: 'success', 
+        message: result.message || 'Product successfully deleted' 
+      })
+      
+      // Hide the confirmation dialog
+      hideDeleteConfirmation()
+      
+    } catch (error) {
+      console.error('Error deleting product:', error)
+      setSubmitStatus({ 
+        type: 'error', 
+        message: `Failed to delete product: ${error.message}` 
+      })
+      
+      // Hide the confirmation dialog
+      hideDeleteConfirmation()
+    }
+  }
+
   useEffect(() => {
     const fetchData = async () => {
       const data = await getProducts()
@@ -79,58 +142,16 @@ const Inventory = () => {
     fetchData()
   }, [])
 
-  // Sample data in case the API call fails
-  const fallbackItems = [
-    {
-      "name": "Tapete 1",
-      "sku": "TA2502131902",
-      "description": "Tapete comprado de contado",
-      "condition": "Mint",
-      "purchase_date": "2025-02-12",
-      "obtained_method": "purchase",
-      "product_id": 1,
-      "category_id": 1,
-      "is_active": true,
-      "category": {
-        "category_name": "Tapetes",
-        "category_id": 1
-      }
-    },
-    {
-      "name": "Deckbox 1",
-      "sku": "DE2502131908",
-      "description": "deckbox comprada por subasta",
-      "condition": "Mint",
-      "purchased_date": "2025-02-12",
-      "obtained_method": "audit",
-      "product_id": 2,
-      "category_id": 2,
-      "is_active": true,
-      "category": {
-        "category_name": "DeckBox",
-        "category_id": 2
-      }
-    }
-  ]
-
-  // Use the fetched products if available, otherwise use fallback data
-  const displayItems = products.length > 0 ? products : fallbackItems
-
-  // Function to handle image errors
-  const handleImageError = () => {
-    setModalData(prev => ({
-      ...prev,
-      img: TestImage, // Fallback to the test image if loading fails
-    }))
-  }
+  // Use the fetched products or the items array as fallback
+  const displayItems = products
 
   return (
     <>
-      <ModalImage 
-        data={modalData} 
-        handler={() => setModalData(prev => ({ ...prev, open: false }))}
-        onImageError={handleImageError}
-      />
+      <ModalImage data={modalData} handler={modalHandler}/>
+      
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.show && (<DeleteProductModal deleteConfirmation={deleteConfirmation} hideDeleteConfirmation={hideDeleteConfirmation} handleDeleteProduct={handleDeleteProduct} />)}
+      
       <div className="w-full overflow-x-hidden">
         {submitStatus.message && (
           <div className={`mb-4 p-4 rounded-md ${submitStatus.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
@@ -161,33 +182,32 @@ const Inventory = () => {
                   </TableRow>
                 </thead>
                 <tbody className='font-Josefin align-middle'>
-                  {displayItems.map(item => (
-                    <TableRow key={item.sku || `item-${item.product_id}`}>            
-                      <TableCol text={item.sku} key={`sku-${item.sku}`}/>
-                      <TableCol text={item.name} key={`name-${item.sku}`}/>
-                      <TableCol text={item.description || "N/A"} key={`desc-${item.sku}`}/>
-                      <TableCol text={item.condition} key={`cond-${item.sku}`}/>
-                      <TableCol text={item.category?.category_name || 'Unknown'} key={`cat-${item.sku}`}/>
-                      <TableCol text={item.obtained_method} key={`ob_me-${item.sku}`}/>
-                      <TableCol text={item.location || "N/A"} key={`location-${item.sku}`}/>
-                      <TableCol key={`image-${item.sku}`}>
-                        <button 
-                          onClick={() => modalHandler(item.product_id, item.name)}
-                          className='text-secondaryBlue font-bold cursor-pointer'
-                        >
-                          View
-                        </button>
+                  {displayItems.map(items => (
+                    <TableRow key={items.sku}>            
+                      <TableCol text={items.sku} key={`sku-${items.sku}`}/>
+                      <TableCol text={items.name} key={`name-${items.sku}`}/>
+                      <TableCol text={items.description} key={`desc-${items.sku}`}/>
+                      <TableCol text={items.condition} key={`cond-${items.sku}`}/>
+                      <TableCol text={items.category.category_name} key={`cat-${items.sku}`}/>
+                      <TableCol text={items.obtained_method} key={`ob_me-${items.sku}`}/>
+                      <TableCol text={items.location || "Colombia"} key={`location-${items.sku}`}/>
+                      <TableCol key={`image-${items.sku}`}>
+                        <div onClick={() => modalHandler(items.product_id, items.name)} className='text-secondaryBlue font-bold cursor-pointer'>
+                          Image
+                        </div>
                       </TableCol>
-                      <TableCol key={`edit-${item.sku}`}>
-                        <Link 
-                          className='text-secondaryBlue font-bold' 
-                          to={`/edit-product/${item.product_id}`}
-                        >
+                      <TableCol key={`edit-${items.sku}`}>
+                        <Link className='text-secondaryBlue font-bold' to={`/edit-product/${items.product_id}`}>
                           Edit
                         </Link>
                       </TableCol>
-                      <TableCol key={`delete-${item.sku}`}>
-                        <button className='text-mainRed font-bold'>Delete</button>
+                      <TableCol key={`delete-${items.sku}`}>
+                        <div 
+                          className='text-mainRed font-bold cursor-pointer'
+                          onClick={() => showDeleteConfirmation(items.product_id, items.name)}
+                        >
+                          Delete
+                        </div>
                       </TableCol>
                     </TableRow>
                   ))}

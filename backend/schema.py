@@ -302,3 +302,9 @@ class SupplierResponse(SupplierBase):
 
     class Config:
         from_attributes = True
+
+class DeleteResponse(BaseModel):
+    """Schema for delete operation responses"""
+    success: bool
+    message: str
+    product_id: Optional[int] = None

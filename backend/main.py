@@ -319,6 +319,36 @@ def get_product_image(
         media_type=content_type
     )
 
+@app.delete("/products/{product_id}", response_model=dict)
+def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a product (marks it as inactive rather than removing it)"""
+    db_product = db.query(models.Product).filter(
+        models.Product.product_id == product_id
+    ).first()
+    
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    try:
+        # Set is_active to False instead of actually deleting the record
+        db_product.is_active = False
+        db.commit()
+        
+        return {
+            "success": True, 
+            "message": f"Product {db_product.name} has been deactivated",
+            "product_id": product_id
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while deactivating the product: {str(e)}"
+        )
+
 
 # Supplier endpoints
 @app.post("/suppliers/", response_model=schema.SupplierResponse)
