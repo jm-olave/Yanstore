@@ -2,8 +2,6 @@ import React, { useState } from 'react'
 import TextInput from '../Components/TextInput/TextInput'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
 
-const apiURL = import.meta.env.VITE_API_URL
-
 const CategoryForm = () => {
   const [form, setForm] = useState({
     category_name: ''
@@ -11,6 +9,9 @@ const CategoryForm = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' })
+
+  // Get API URL from environment variables or use a default
+  const apiURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
   const validateForm = () => {
     if (!form.category_name.trim()) {
@@ -32,7 +33,7 @@ const CategoryForm = () => {
       setIsSubmitting(true)
       setSubmitStatus({ type: '', message: '' })
 
-      const response = await fetch(`${apiURL}/categories`, {
+      const response = await fetch(`${apiURL}/categories/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,7 +43,18 @@ const CategoryForm = () => {
       })
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.status}`)
+        const errorData = await response.json().catch(() => ({}))
+        let errorMessage = `Error: ${response.status}`
+        
+        if (errorData.detail) {
+          errorMessage = typeof errorData.detail === 'string' 
+            ? errorData.detail 
+            : Array.isArray(errorData.detail)
+              ? errorData.detail.map(err => err.msg).join(', ')
+              : errorMessage
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
@@ -61,6 +73,7 @@ const CategoryForm = () => {
         type: 'error', 
         message: `Failed to submit form: ${error.message}` 
       })
+      console.error('API Error:', error)
     } finally {
       setIsSubmitting(false)
     }
@@ -81,7 +94,7 @@ const CategoryForm = () => {
         </div>
       )}
 
-      <form className='lg:grid lg:grid-cols-1 lg:gap-4'>
+      <form className='lg:grid lg:grid-cols-1 lg:gap-4' onSubmit={handleSubmit}>
         <div className='flex flex-col justify-evenly'>
           <TextInput 
             name='category_name' 
@@ -95,7 +108,7 @@ const CategoryForm = () => {
         <div className='w-2/3 mt-8 mx-auto max-w-xs lg:m-0 lg:justify-self-end'>
           <SubmitButton 
             text={isSubmitting ? 'SUBMITTING...' : 'ADD CATEGORY'} 
-            onClick={handleSubmit}
+            type="submit"
             disabled={isSubmitting}
           />
         </div>

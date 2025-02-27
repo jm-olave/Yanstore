@@ -135,7 +135,7 @@ async def create_product(
         # 3. Combine the category prefix with timestamp to create the SKU
         sku = f"{category_prefix}{timestamp}"
         # Validate the condition value explicitly
-        valid_conditions = ["Mint", "Near Mint", "Excelent", "Good", "Lightly Played", "Played", "Poor"]
+        valid_conditions = ["Mint", "Near Mint", "Excelent", "Good", "Lightly Played", "Played", "Poor","New", "Used", "Damaged"]
         if condition not in valid_conditions:
             raise HTTPException(
                 status_code=400,

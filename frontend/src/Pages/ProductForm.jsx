@@ -7,6 +7,9 @@ import ImageInput from '../Components/ImageInput/ImageInput'
 import TextAreaInput from '../Components/TextAreaInput/TextAreaInput'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
 
+// Get API URL from environment variables or use a default
+const apiURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
 const obtainingMethods = [
   { value: 'Select Option', label: 'Select Option' },
   { value: 'Audit', label: 'Audit' },
@@ -38,8 +41,6 @@ const locations = [
   { value: 'USA', label: 'USA' },
 ]
 
-const apiURL = import.meta.env.VITE_API_URL
-
 const ProductForm = () => {
   const { productId } = useParams()
   const navigate = useNavigate()
@@ -59,11 +60,7 @@ const ProductForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' })
   const [categories, setCategories] = useState([
-    { value: 'Select Option', label: 'Select Option' },
-    { value: 'Playmat', label: 'Playmat' },
-    { value: 'Deckbox', label: 'Deckbox' },
-    { value: 'Sleeves', label: 'Sleeves' },
-    { value: 'Card', label: 'Card' },
+    { value: 'Select Option', label: 'Select Option' }
   ])
 
   // Fetch product data if in edit mode
@@ -88,7 +85,7 @@ const ProductForm = () => {
           condition: productData.condition,
           obtained_method: productData.obtained_method,
           purchase_date: formattedDate,
-          location: productData.location,
+          location: productData.location || 'Select Option',
           description: productData.description || '',
           image: null // We don't load the existing image as it can't be displayed in the file input
         })
@@ -97,6 +94,7 @@ const ProductForm = () => {
           type: 'error',
           message: `Failed to load product: ${error.message}`
         })
+        console.error('Error fetching product:', error)
       }
     }
 
@@ -179,18 +177,25 @@ const ProductForm = () => {
             })
           : formData,
         headers: isEditMode 
-          ? {'Accept': 'application/json'}
-          : undefined
+          ? {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          : {
+              'Accept': 'application/json'
+            }
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({}))
         let errorMessage = 'Unknown error occurred'
         
-        if (errorData.detail && Array.isArray(errorData.detail)) {
-          errorMessage = errorData.detail.map(error => error.msg).join(', ')
-        } else if (typeof errorData.detail === 'string') {
-          errorMessage = errorData.detail
+        if (errorData.detail) {
+          errorMessage = typeof errorData.detail === 'string' 
+            ? errorData.detail 
+            : Array.isArray(errorData.detail)
+              ? errorData.detail.map(err => err.msg).join(', ')
+              : errorMessage
         }
         
         throw new Error(errorMessage)
@@ -225,6 +230,7 @@ const ProductForm = () => {
         type: 'error', 
         message: `Failed to ${isEditMode ? 'update' : 'submit'} form: ${error.message}` 
       })
+      console.error('API Error:', error)
     } finally {
       setIsSubmitting(false)
     }
@@ -257,10 +263,20 @@ const ProductForm = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch(`${apiURL}/categories`)
-        if (!response.ok) throw new Error(`Error: ${response.status}`)
+        console.log('Fetching categories from:', `${apiURL}/categories/`)
+        const response = await fetch(`${apiURL}/categories/`, {
+          headers: {
+            'Accept': 'application/json'
+          }
+        })
+        
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status} ${response.statusText}`)
+        }
         
         const data = await response.json()
+        console.log('Categories data:', data)
+        
         const mappedCategories = [
           { value: 'Select Option', label: 'Select Option' },
           ...data.map(cat => ({
@@ -270,12 +286,14 @@ const ProductForm = () => {
         ]
         setCategories(mappedCategories)
       } catch (error) {
+        console.error('Error fetching categories:', error)
         setSubmitStatus({ 
           type: 'error', 
           message: `Failed to fetch categories: ${error.message}` 
         })
       }
     }
+    
     fetchCategories()
   }, [])
 
@@ -309,7 +327,7 @@ const ProductForm = () => {
             name='condition' 
             title='Condition' 
             value={form.condition} 
-            options={form.category_id == 'Card' ? cardConditions : conditions} 
+            options={form.category_id === '4' ? cardConditions : conditions} 
             onChange={handleFormChange}
             required
           />
