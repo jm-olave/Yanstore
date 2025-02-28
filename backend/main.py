@@ -39,6 +39,7 @@ app.add_middleware(
         "http://192.168.2.138:5173",
         "https://yanstoreapi-bzercjhpe2d4aueh.canadacentral-01.azurewebsites.net",
         "https://magenta-paprenjak-8434f9.netlify.app",
+        "https://stupendous-mermaid-4ecc91.netlify.app/",
         "http://172.29.223.73:5173"],  # Add your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
@@ -138,7 +139,7 @@ async def create_product(
         # 3. Combine the category prefix with timestamp to create the SKU
         sku = f"{category_prefix}{timestamp}"
         # Validate the condition value explicitly
-        valid_conditions = ["Mint", "Near Mint", "Excelent", "Good", "Lightly Played", "Played", "Poor", "New", "Used", "Damaged"]
+        valid_conditions = ["Mint", "Near Mint", "Excellent", "Good", "Lightly Played", "Played", "Poor", "New", "Used", "Damaged"]
         if condition not in valid_conditions:
             raise HTTPException(
                 status_code=400,

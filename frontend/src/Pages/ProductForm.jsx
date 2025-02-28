@@ -12,9 +12,9 @@ const apiURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
 const obtainingMethods = [
   { value: 'Select Option', label: 'Select Option' },
-  { value: 'Audit', label: 'Audit' },
-  { value: 'Purchase', label: 'Purchase' },
-  { value: 'Trade', label: 'Trade' },
+  { value: 'audit', label: 'Audit' },
+  { value: 'purchase', label: 'Purchase' },
+  { value: 'trade', label: 'Trade' },
 ]
 
 const conditions = [
@@ -55,6 +55,7 @@ const ProductForm = () => {
     location: 'Select Option',
     image: null,
     description: '',
+    initial_quantity: 1
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -87,7 +88,8 @@ const ProductForm = () => {
           purchase_date: formattedDate,
           location: productData.location || 'Select Option',
           description: productData.description || '',
-          image: null // We don't load the existing image as it can't be displayed in the file input
+          image: null, // We don't load the existing image as it can't be displayed in the file input
+          initial_quantity: 1
         })
       } catch (error) {
         setSubmitStatus({
@@ -141,20 +143,23 @@ const ProductForm = () => {
         throw new Error('Invalid category ID')
       }
 
-      const purchaseDate = form.purchase_date 
-        ? new Date(form.purchase_date).toISOString()
-        : null
-
       formData.append('name', form.name)
       formData.append('category_id', categoryId)
       formData.append('condition', form.condition)
-      formData.append('obtained_method', form.obtained_method)
+      formData.append('obtained_method', form.obtained_method.toLowerCase())
       formData.append('location', form.location)
-      formData.append('purchase_date', purchaseDate)
+      formData.append('purchase_date', form.purchase_date)
       formData.append('description', form.description || '')
+      formData.append('initial_quantity', form.initial_quantity || 1)
       
       if (form.image) {
         formData.append('image', form.image)
+      }
+
+      // Log FormData entries for debugging
+      console.log('Submitting form with data:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`);
       }
 
       const url = isEditMode 
@@ -170,9 +175,9 @@ const ProductForm = () => {
               name: form.name,
               category_id: categoryId,
               condition: form.condition,
-              obtained_method: form.obtained_method,
+              obtained_method: form.obtained_method.toLowerCase(),
               location: form.location,
-              purchase_date: purchaseDate,
+              purchase_date: form.purchase_date,
               description: form.description
             })
           : formData,
@@ -187,18 +192,25 @@ const ProductForm = () => {
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        let errorMessage = 'Unknown error occurred'
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
         
-        if (errorData.detail) {
-          errorMessage = typeof errorData.detail === 'string' 
-            ? errorData.detail 
-            : Array.isArray(errorData.detail)
-              ? errorData.detail.map(err => err.msg).join(', ')
-              : errorMessage
+        try {
+          const errorData = JSON.parse(errorText);
+          let errorMessage = 'Unknown error occurred';
+          
+          if (errorData.detail) {
+            errorMessage = typeof errorData.detail === 'string' 
+              ? errorData.detail 
+              : Array.isArray(errorData.detail)
+                ? errorData.detail.map(err => err.msg).join(', ')
+                : errorMessage;
+          }
+          
+          throw new Error(errorMessage);
+        } catch (jsonError) {
+          throw new Error(`Server error (${response.status}): ${errorText.substring(0, 100)}`);
         }
-        
-        throw new Error(errorMessage)
       }
 
       const productData = await response.json()
@@ -217,6 +229,7 @@ const ProductForm = () => {
           location: 'Select Option',
           image: null,
           description: '',
+          initial_quantity: 1
         })
       }
 
