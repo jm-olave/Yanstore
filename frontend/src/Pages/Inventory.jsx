@@ -7,7 +7,7 @@ import TestImage from '../Images/ImagePlaceholder.png'
 import DeleteProductModal from '../Components/DeleteProductModal/DeleteProductModal'
 
 // Get API URL from environment variables or use a default
-const apiURL = 'https://yanstore-api-6e6412b99156.herokuapp.com/'
+const apiURL = 'https://yanstore-api-6e6412b99156.herokuapp.com'
 
 const Inventory = () => {
   const [products, setProducts] = useState([])

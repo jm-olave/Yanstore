@@ -8,7 +8,7 @@ import TextAreaInput from '../Components/TextAreaInput/TextAreaInput'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
 
 // Get API URL from environment variables or use a default
-const apiURL = 'https://yanstore-api-6e6412b99156.herokuapp.com/'
+const apiURL = 'https://yanstore-api-6e6412b99156.herokuapp.com'
 
 const obtainingMethods = [
   { value: 'Select Option', label: 'Select Option' },
