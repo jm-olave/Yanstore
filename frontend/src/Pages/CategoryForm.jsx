@@ -11,7 +11,7 @@ const CategoryForm = () => {
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' })
 
   // Get API URL from environment variables or use a default
-  const apiURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+  const apiURL = 'https://yanstore-api-6e6412b99156.herokuapp.com/'
 
   const validateForm = () => {
     if (!form.category_name.trim()) {
