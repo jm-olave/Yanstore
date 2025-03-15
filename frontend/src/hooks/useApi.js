@@ -193,6 +193,17 @@ export const useApi = () => {
     });
   }, [fetchData]);
 
+  /**
+   * Delete a category
+   * @param {number} id - category ID
+   * @returns {Promise<Object>} Response data
+   */
+  const deleteCategory = useCallback((id) => {
+    return fetchData(`/categories/${id}`, {
+      method: 'DELETE'
+    });
+  }, [fetchData]);
+
   return {
     loading,
     error,
@@ -205,7 +216,8 @@ export const useApi = () => {
     deleteProduct,
     registerSale,
     createPricePoint,
-    createCategory
+    createCategory,
+    deleteCategory
   };
 };
 

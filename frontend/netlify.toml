@@ -1,0 +1,30 @@
+# Environment settings for deploy-preview context
+[context.deploy-preview.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--version"
+  NODE_ENV = "production"
+
+# Environment settings for branch deploys
+[context.branch-deploy.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--version"
+  NODE_ENV = "production"
+
+# Production context: This is the build we'll
+# use when a merge to "main" occurs
+[context.production]
+  command = "npm run build:prod"
+  
+# Branch deploy context: Deploy all non-master branches
+[context.branch-deploy]
+  command = "npm run build:prod"
+  
+# Deploy preview context: Preview our PRs
+[context.deploy-preview]
+  command = "npm run build:prod"
+
+# Redirects for SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

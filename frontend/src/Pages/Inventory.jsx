@@ -10,8 +10,8 @@ const Inventory = () => {
   const { loading: apiLoading, error: apiError, getProducts, deleteProduct } = useApi();
   
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
+  const loading = apiLoading;
   
   const [modalData, setModalData] = useState({
     open: false,
@@ -51,7 +51,6 @@ const Inventory = () => {
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        setLoading(true);
         const data = await getProducts();
         setProducts(data);
         setSubmitStatus({ type: '', message: '' });
@@ -61,8 +60,6 @@ const Inventory = () => {
           type: 'error',
           message: `Failed to load products: ${error.message}`
         });
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -161,11 +158,11 @@ const Inventory = () => {
                   <TableRow>
                     <TableCol text='SKU' key='SKU'/>
                     <TableCol text='NAME' key='NAME'/>
-                    <TableCol text='DESC' key='DESC'/>
                     <TableCol text='CONDITION' key='CONDITION'/>
                     <TableCol text='CATEGORY' key='CATEGORY'/>
                     <TableCol text='OBT METHOD' key='OBT-METHOD'/>
                     <TableCol text='LOCATION' key='LOCATION'/>
+                    <TableCol text='DESC' key='DESC'/>
                     <TableCol text='IMAGE' key='IMAGE'/>
                     <TableCol text='EDIT' key='EDIT'/>
                     <TableCol text='DELETE' key='DELETE'/>
@@ -176,11 +173,11 @@ const Inventory = () => {
                     <TableRow key={item.sku}>            
                       <TableCol text={item.sku} key={`sku-${item.sku}`}/>
                       <TableCol text={item.name} key={`name-${item.sku}`}/>
-                      <TableCol text={item.description} key={`desc-${item.sku}`}/>
                       <TableCol text={item.condition} key={`cond-${item.sku}`}/>
                       <TableCol text={item.category.category_name} key={`cat-${item.sku}`}/>
                       <TableCol text={item.obtained_method} key={`ob_me-${item.sku}`}/>
                       <TableCol text={item.location || "Colombia"} key={`location-${item.sku}`}/>
+                      <TableCol text={item.description} key={`desc-${item.sku}`}/>
                       <TableCol key={`image-${item.sku}`}>
                         <div onClick={() => modalHandler(item.product_id, item.name)} className='text-secondaryBlue font-bold cursor-pointer'>
                           Image
