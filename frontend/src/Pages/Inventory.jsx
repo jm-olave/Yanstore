@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import TableRow from '../Components/TableRow/TableRow';
 import TableCol from '../Components/TableCol/TableCol';
 import ModalImage from '../Components/ModalImage/ModalImage';
-import DeleteProductModal from '../Components/DeleteProductModal/DeleteProductModal';
+import DeleteItemModal from '../Components/DeleteItemModal/DeleteItemModal';
 import useApi from '../hooks/useApi';
 
 const Inventory = () => {
@@ -132,10 +132,10 @@ const Inventory = () => {
       
       {/* Delete Confirmation Modal */}
       {deleteConfirmation.show && (
-        <DeleteProductModal 
+        <DeleteItemModal 
           deleteConfirmation={deleteConfirmation} 
           hideDeleteConfirmation={hideDeleteConfirmation} 
-          handleDeleteProduct={handleDeleteProduct} 
+          handleDeleteFunction={handleDeleteProduct} 
         />
       )}
       

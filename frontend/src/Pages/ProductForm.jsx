@@ -71,7 +71,6 @@ const ProductForm = () => {
     image: null,
     description: '',
     initial_quantity: 1
-    initial_quantity: 1
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -100,8 +99,6 @@ const ProductForm = () => {
           purchase_date: formattedDate,
           location: productData.location || 'Select Option',
           description: productData.description || '',
-          image: null, // We don't load the existing image as it can't be displayed in the file input
-          initial_quantity: 1
           image: null, // We don't load the existing image as it can't be displayed in the file input
           initial_quantity: 1
         })
@@ -230,7 +227,6 @@ const ProductForm = () => {
           location: 'Select Option',
           image: null,
           description: '',
-          initial_quantity: 1
           initial_quantity: 1
         })
       }

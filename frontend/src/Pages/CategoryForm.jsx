@@ -4,7 +4,7 @@ import SubmitButton from '../Components/SubmitButton/SubmitButton'
 import useApi from '../hooks/useApi'
 import TableCol from '../Components/TableCol/TableCol'
 import TableRow from '../Components/TableRow/TableRow'
-import DeleteProductModal from '../Components/DeleteProductModal/DeleteProductModal'
+import DeleteItemModal from '../Components/DeleteItemModal/DeleteItemModal'
 
 const CategoryForm = () => {
   const { loading: apiLoading, error: apiError, createCategory, getCategories, deleteCategory } = useApi();
@@ -55,6 +55,10 @@ const CategoryForm = () => {
       setForm({
         category_name: ''
       });
+      
+      // Refresh the categories list after adding a new category
+      const updatedCategories = await getCategories();
+      setCategories(updatedCategories);
 
     } catch (error) {
       setSubmitStatus({ 
@@ -74,7 +78,7 @@ const CategoryForm = () => {
     }
   };
 
-    // Show delete confirmation dialog
+  // Show delete confirmation dialog
   const showDeleteConfirmation = (category_id, category_name) => {
     setDeleteConfirmation({
       show: true,
@@ -95,7 +99,7 @@ const CategoryForm = () => {
   // Handle product deletion
   const handleDeleteCategory = async () => {
     try {
-      const categoryId = deleteConfirmation.categoryId;
+      const categoryId = deleteConfirmation.category_id;
       
       if (!categoryId) return;
       
@@ -157,10 +161,11 @@ const CategoryForm = () => {
   return (
     <>
       {deleteConfirmation.show && (
-        <DeleteProductModal 
+        <DeleteItemModal 
           deleteConfirmation={deleteConfirmation} 
           hideDeleteConfirmation={hideDeleteConfirmation} 
-          handleDeleteProduct={handleDeleteCategory} 
+          handleDeleteFunction={handleDeleteCategory}
+          message={`Are you sure that you want to delete the category ${deleteConfirmation.category_name}?`}
         />
       )}
 
