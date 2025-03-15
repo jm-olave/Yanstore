@@ -5,6 +5,7 @@ import TextInput from '../Components/TextInput/TextInput'
 import DateInput from '../Components/DateInput/DateInput'
 import ImageInput from '../Components/ImageInput/ImageInput'
 import TextAreaInput from '../Components/TextAreaInput/TextAreaInput'
+import NumberInput from '../Components/NumberInput/NumberInput'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
 import useApi from '../hooks/useApi'
 import useDateUtils from '../hooks/useDate'
@@ -52,7 +53,8 @@ const ProductForm = () => {
     getProduct, 
     getCategories, 
     createProduct, 
-    updateProduct 
+    updateProduct,
+    createPricePoint
   } = useApi()
 
   // Use the date utils hook
@@ -70,7 +72,8 @@ const ProductForm = () => {
     location: 'Select Option',
     image: null,
     description: '',
-    initial_quantity: 1
+    initial_quantity: 1,
+    base_cost: ''
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -90,6 +93,21 @@ const ProductForm = () => {
         
         // Format the date using our hook
         const formattedDate = formatForDisplay(productData.purchase_date)
+        
+        // Fetch the latest price point for this product
+        let baseCost = '';
+        
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/products/${productId}/price-points/?current_only=true&limit=1`);
+          if (response.ok) {
+            const pricePoints = await response.json();
+            if (pricePoints && pricePoints.length > 0) {
+              baseCost = pricePoints[0].base_cost;
+            }
+          }
+        } catch (priceError) {
+          console.error('Error fetching price points:', priceError);
+        }
 
         setForm({
           name: productData.name,
@@ -100,7 +118,8 @@ const ProductForm = () => {
           location: productData.location || 'Select Option',
           description: productData.description || '',
           image: null, // We don't load the existing image as it can't be displayed in the file input
-          initial_quantity: 1
+          initial_quantity: 1,
+          base_cost: baseCost
         })
       } catch (error) {
         setSubmitStatus({
@@ -152,6 +171,12 @@ const ProductForm = () => {
       return false
     }
     
+    // Validate base cost
+    if (!form.base_cost || parseFloat(form.base_cost) <= 0) {
+      setSubmitStatus({ type: 'error', message: 'Base cost is required and must be greater than 0' })
+      return false
+    }
+    
     // Additional validation to ensure the date is not in the future
     const selectedDate = new Date(form.purchase_date)
     const currentDate = new Date()
@@ -190,6 +215,24 @@ const ProductForm = () => {
         console.log('Updating product with data:', updateData);
         await updateProduct(productId, updateData)
         
+        // Check if the price information has been provided and create a new price point
+        if (form.base_cost) {
+          try {
+            await createPricePoint({
+              product_id: parseInt(productId),
+              base_cost: parseFloat(form.base_cost),
+              selling_price: parseFloat(form.base_cost) * 1.3, // Set a default selling price as 30% markup
+              market_price: parseFloat(form.base_cost) * 1.3, // Set market price same as selling price by default
+              currency: 'USD',
+              effective_from: new Date().toISOString()
+            });
+            console.log('Created new price point for updated product');
+          } catch (priceError) {
+            console.error('Error creating price point:', priceError);
+            // We'll continue even if price point creation fails
+          }
+        }
+        
         setSubmitStatus({ 
           type: 'success', 
           message: 'Product successfully updated!' 
@@ -220,11 +263,21 @@ const ProductForm = () => {
           formData.append('image', form.image)
         }
 
-        await createProduct(formData)
+        const newProduct = await createProduct(formData)
+        
+        // Create a price point for the new product
+        await createPricePoint({
+          product_id: newProduct.product_id,
+          base_cost: parseFloat(form.base_cost),
+          selling_price: parseFloat(form.base_cost) * 1.3, // Set a default selling price as 30% markup
+          market_price: parseFloat(form.base_cost) * 1.3, // Set market price same as selling price by default
+          currency: 'USD',
+          effective_from: new Date().toISOString()
+        })
         
         setSubmitStatus({ 
           type: 'success', 
-          message: 'Product successfully added!' 
+          message: 'Product and pricing successfully added!' 
         })
 
         // Reset form after successful submission (only in create mode)
@@ -237,7 +290,8 @@ const ProductForm = () => {
           location: 'Select Option',
           image: null,
           description: '',
-          initial_quantity: 1
+          initial_quantity: 1,
+          base_cost: ''
         })
       }
 
@@ -371,6 +425,17 @@ const ProductForm = () => {
             max={today}
             required
           />
+
+          <div className='lg:col-span-2'>
+            <NumberInput 
+              name='base_cost'
+              title='Base Cost'
+              value={form.base_cost}
+              onChange={handleFormChange}
+              required
+            />
+          </div>
+
           {!isEditMode && (
             <ImageInput 
               name='image' 

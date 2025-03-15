@@ -51,8 +51,32 @@ const Inventory = () => {
   useEffect(() => {
     const loadProducts = async () => {
       try {
+        // Get all products
         const data = await getProducts();
-        setProducts(data);
+        
+        // For each product, fetch the current price point
+        const productsWithPricing = await Promise.all(data.map(async (product) => {
+          try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/products/${product.product_id}/price-points/?current_only=true&limit=1`);
+            if (response.ok) {
+              const pricePoints = await response.json();
+              if (pricePoints && pricePoints.length > 0) {
+                return {
+                  ...product,
+                  base_cost: pricePoints[0].base_cost,
+                  selling_price: pricePoints[0].selling_price
+                };
+              }
+            }
+            // If we can't get price point, return the product without pricing
+            return product;
+          } catch (error) {
+            console.error(`Error fetching price for product ${product.product_id}:`, error);
+            return product;
+          }
+        }));
+        
+        setProducts(productsWithPricing);
         setSubmitStatus({ type: '', message: '' });
       } catch (error) {
         console.error('Error loading products:', error);
@@ -160,6 +184,7 @@ const Inventory = () => {
                     <TableCol text='NAME' key='NAME'/>
                     <TableCol text='CONDITION' key='CONDITION'/>
                     <TableCol text='CATEGORY' key='CATEGORY'/>
+                    <TableCol text='BASE COST' key='BASE-COST'/>
                     <TableCol text='OBT METHOD' key='OBT-METHOD'/>
                     <TableCol text='LOCATION' key='LOCATION'/>
                     <TableCol text='DESC' key='DESC'/>
@@ -175,6 +200,7 @@ const Inventory = () => {
                       <TableCol text={item.name} key={`name-${item.sku}`}/>
                       <TableCol text={item.condition} key={`cond-${item.sku}`}/>
                       <TableCol text={item.category.category_name} key={`cat-${item.sku}`}/>
+                      <TableCol text={item.base_cost ? `$${Number(item.base_cost).toFixed(2)}` : 'N/A'} key={`cost-${item.sku}`}/>
                       <TableCol text={item.obtained_method} key={`ob_me-${item.sku}`}/>
                       <TableCol text={item.location || "Colombia"} key={`location-${item.sku}`}/>
                       <TableCol text={item.description} key={`desc-${item.sku}`}/>
