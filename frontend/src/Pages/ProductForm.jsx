@@ -14,9 +14,6 @@ const obtainingMethods = [
   { value: 'audit', label: 'Audit' },
   { value: 'purchase', label: 'Purchase' },
   { value: 'trade', label: 'Trade' },
-  { value: 'audit', label: 'Audit' },
-  { value: 'purchase', label: 'Purchase' },
-  { value: 'trade', label: 'Trade' },
 ]
 
 const conditions = [
@@ -60,6 +57,9 @@ const ProductForm = () => {
 
   // Use the date utils hook
   const { formatForApi, formatForDisplay } = useDateUtils()
+
+  // Get current date in YYYY-MM-DD format for max date attribute
+  const today = new Date().toISOString().split('T')[0]
 
   const [form, setForm] = useState({
     name: '',
@@ -151,6 +151,16 @@ const ProductForm = () => {
       setSubmitStatus({ type: 'error', message: 'Purchase date is required' })
       return false
     }
+    
+    // Additional validation to ensure the date is not in the future
+    const selectedDate = new Date(form.purchase_date)
+    const currentDate = new Date()
+    
+    if (selectedDate > currentDate) {
+      setSubmitStatus({ type: 'error', message: 'Purchase date cannot be in the future' })
+      return false
+    }
+    
     return true
   }
 
@@ -358,6 +368,7 @@ const ProductForm = () => {
                 }
               })
             }}
+            max={today}
             required
           />
           {!isEditMode && (
