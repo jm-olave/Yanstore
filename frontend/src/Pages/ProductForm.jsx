@@ -6,15 +6,14 @@ import DateInput from '../Components/DateInput/DateInput'
 import ImageInput from '../Components/ImageInput/ImageInput'
 import TextAreaInput from '../Components/TextAreaInput/TextAreaInput'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
-
-// Get API URL from environment variables or use a default
-const apiURL = 'https://yanstore-api-6e6412b99156.herokuapp.com/'
+import useApi from '../hooks/useApi'
+import useDateUtils from '../hooks/useDate'
 
 const obtainingMethods = [
   { value: 'Select Option', label: 'Select Option' },
-  { value: 'Audit', label: 'Audit' },
-  { value: 'Purchase', label: 'Purchase' },
-  { value: 'Trade', label: 'Trade' },
+  { value: 'audit', label: 'Audit' },
+  { value: 'purchase', label: 'Purchase' },
+  { value: 'trade', label: 'Trade' },
 ]
 
 const conditions = [
@@ -46,6 +45,19 @@ const ProductForm = () => {
   const navigate = useNavigate()
   const isEditMode = Boolean(productId)
 
+  // Use the API hook
+  const { 
+    loading: apiLoading, 
+    error: apiError, 
+    getProduct, 
+    getCategories, 
+    createProduct, 
+    updateProduct 
+  } = useApi()
+
+  // Use the date utils hook
+  const { formatForApi, formatForDisplay } = useDateUtils()
+
   const [form, setForm] = useState({
     name: '',
     category_id: 'Select Option',
@@ -55,6 +67,7 @@ const ProductForm = () => {
     location: 'Select Option',
     image: null,
     description: '',
+    initial_quantity: 1
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -69,15 +82,11 @@ const ProductForm = () => {
       if (!isEditMode) return
 
       try {
-        const response = await fetch(`${apiURL}/products/${productId}`)
-        if (!response.ok) throw new Error('Failed to fetch product')
+        setIsSubmitting(true)
+        const productData = await getProduct(productId)
         
-        const productData = await response.json()
-        
-        // Format the date to YYYY-MM-DD for the date input
-        const formattedDate = new Date(productData.purchase_date)
-          .toISOString()
-          .split('T')[0]
+        // Format the date using our hook
+        const formattedDate = formatForDisplay(productData.purchase_date)
 
         setForm({
           name: productData.name,
@@ -87,7 +96,8 @@ const ProductForm = () => {
           purchase_date: formattedDate,
           location: productData.location || 'Select Option',
           description: productData.description || '',
-          image: null // We don't load the existing image as it can't be displayed in the file input
+          image: null, // We don't load the existing image as it can't be displayed in the file input
+          initial_quantity: 1
         })
       } catch (error) {
         setSubmitStatus({
@@ -95,11 +105,23 @@ const ProductForm = () => {
           message: `Failed to load product: ${error.message}`
         })
         console.error('Error fetching product:', error)
+      } finally {
+        setIsSubmitting(false)
       }
     }
 
     fetchProductData()
-  }, [productId, isEditMode])
+  }, [productId, isEditMode, getProduct, formatForDisplay])
+
+  // Display API errors from the hook
+  useEffect(() => {
+    if (apiError) {
+      setSubmitStatus({
+        type: 'error',
+        message: apiError
+      })
+    }
+  }, [apiError])
 
   const validateForm = () => {
     if (!form.name.trim()) {
@@ -134,80 +156,65 @@ const ProductForm = () => {
       setIsSubmitting(true)
       setSubmitStatus({ type: '', message: '' })
 
-      const formData = new FormData()
-      
       const categoryId = parseInt(form.category_id, 10)
       if (isNaN(categoryId)) {
         throw new Error('Invalid category ID')
       }
 
-      const purchaseDate = form.purchase_date 
-        ? new Date(form.purchase_date).toISOString()
-        : null
+      const dateValue = formatForApi(form.purchase_date)
 
-      formData.append('name', form.name)
-      formData.append('category_id', categoryId)
-      formData.append('condition', form.condition)
-      formData.append('obtained_method', form.obtained_method)
-      formData.append('location', form.location)
-      formData.append('purchase_date', purchaseDate)
-      formData.append('description', form.description || '')
-      
-      if (form.image) {
-        formData.append('image', form.image)
-      }
-
-      const url = isEditMode 
-        ? `${apiURL}/products/${productId}`
-        : `${apiURL}/products/`
-
-      const method = isEditMode ? 'PATCH' : 'POST'
-
-      const response = await fetch(url, {
-        method,
-        body: isEditMode 
-          ? JSON.stringify({
-              name: form.name,
-              category_id: categoryId,
-              condition: form.condition,
-              obtained_method: form.obtained_method,
-              location: form.location,
-              purchase_date: purchaseDate,
-              description: form.description
-            })
-          : formData,
-        headers: isEditMode 
-          ? {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          : {
-              'Accept': 'application/json'
-            }
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        let errorMessage = 'Unknown error occurred'
-        
-        if (errorData.detail) {
-          errorMessage = typeof errorData.detail === 'string' 
-            ? errorData.detail 
-            : Array.isArray(errorData.detail)
-              ? errorData.detail.map(err => err.msg).join(', ')
-              : errorMessage
+      if (isEditMode) {
+        const updateData = {
+          name: form.name,
+          category_id: categoryId,
+          condition: form.condition,
+          obtained_method: form.obtained_method.toLowerCase(),
+          location: form.location,
+          purchase_date: dateValue,
+          description: form.description
         }
         
-        throw new Error(errorMessage)
-      }
+        console.log('Updating product with data:', updateData);
+        await updateProduct(productId, updateData)
+        
+        setSubmitStatus({ 
+          type: 'success', 
+          message: 'Product successfully updated!' 
+        })
+      } else {
+        // Create new product using the hook
+        const formData = new FormData()
+        
+        // Add all required fields
+        formData.append('name', form.name)
+        formData.append('category_id', categoryId)
+        formData.append('condition', form.condition)
+        formData.append('obtained_method', form.obtained_method.toLowerCase())
+        formData.append('purchase_date', dateValue)
+        
+        // Add optional fields
+        if (form.location && form.location !== 'Select Option') {
+          formData.append('location', form.location)
+        }
+        
+        if (form.description) {
+          formData.append('description', form.description)
+        }
+        
+        formData.append('initial_quantity', form.initial_quantity || 1)
+        
+        if (form.image) {
+          formData.append('image', form.image)
+        }
 
-      const productData = await response.json()
-      setSubmitStatus({ 
-        type: 'success', 
-        message: `Product successfully ${isEditMode ? 'updated' : 'added'}!` 
-      })
+        await createProduct(formData)
+        
+        setSubmitStatus({ 
+          type: 'success', 
+          message: 'Product successfully added!' 
+        })
 
-      if (!isEditMode) {
+        // Reset form after successful submission (only in create mode)
         setForm({
           name: '',
           category_id: 'Select Option',
@@ -217,6 +224,7 @@ const ProductForm = () => {
           location: 'Select Option',
           image: null,
           description: '',
+          initial_quantity: 1
         })
       }
 
@@ -259,23 +267,11 @@ const ProductForm = () => {
     }
   }
 
-  // Fetch categories
+  // Fetch categories using the API hook
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        console.log('Fetching categories from:', `${apiURL}/categories/`)
-        const response = await fetch(`${apiURL}/categories/`, {
-          headers: {
-            'Accept': 'application/json'
-          }
-        })
-        
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} ${response.statusText}`)
-        }
-        
-        const data = await response.json()
-        console.log('Categories data:', data)
+        const data = await getCategories()
         
         const mappedCategories = [
           { value: 'Select Option', label: 'Select Option' },
@@ -287,15 +283,11 @@ const ProductForm = () => {
         setCategories(mappedCategories)
       } catch (error) {
         console.error('Error fetching categories:', error)
-        setSubmitStatus({ 
-          type: 'error', 
-          message: `Failed to fetch categories: ${error.message}` 
-        })
       }
     }
     
     fetchCategories()
-  }, [])
+  }, [getCategories])
 
   return (
     <div className="w-11/12 pb-11 mx-auto lg:max-w-5xl">
@@ -386,9 +378,9 @@ const ProductForm = () => {
 
         <div className='w-2/3 mt-8 mx-auto max-w-xs lg:col-start-2 lg:m-0 lg:justify-self-end'>
           <SubmitButton 
-            text={isSubmitting ? 'SUBMITTING...' : isEditMode ? 'UPDATE PRODUCT' : 'ADD PRODUCT'} 
+            text={isSubmitting || apiLoading ? 'SUBMITTING...' : isEditMode ? 'UPDATE PRODUCT' : 'ADD PRODUCT'} 
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || apiLoading}
           />
         </div>
       </form>

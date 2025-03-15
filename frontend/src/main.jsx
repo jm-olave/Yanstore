@@ -9,8 +9,18 @@ import FinancialInformationForm from './Pages/FinancialInformationForm.jsx'
 import Inventory from './Pages/Inventory.jsx'
 import ProductForm from './Pages/ProductForm.jsx'
 import ProviderForm from './Pages/ProviderForm.jsx'
+import { validateEnv, logEnvironmentInfo } from './utils/validateEnv.js'
+
+// Validate environment variables are correctly set
+validateEnv();
+
+// Log environment information (only in development)
+if (import.meta.env.MODE === 'development') {
+  logEnvironmentInfo();
+}
 
 createRoot(document.getElementById('root')).render(
+  <StrictMode>
     <BrowserRouter>
      <Routes>
       <Route index element={<MainMenu/>}/>
@@ -34,4 +44,5 @@ createRoot(document.getElementById('root')).render(
       </Route>
      </Routes>
     </BrowserRouter>
+  </StrictMode>
 )

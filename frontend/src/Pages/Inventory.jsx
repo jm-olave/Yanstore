@@ -1,40 +1,41 @@
-import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router'
-import TableRow from '../Components/TableRow/TableRow'
-import TableCol from '../Components/TableCol/TableCol'
-import ModalImage from '../Components/ModalImage/ModalImage'
-import TestImage from '../Images/ImagePlaceholder.png'
-import DeleteProductModal from '../Components/DeleteProductModal/DeleteProductModal'
-
-// Get API URL from environment variables or use a default
-const apiURL = 'https://yanstore-api-6e6412b99156.herokuapp.com/'
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router';
+import TableRow from '../Components/TableRow/TableRow';
+import TableCol from '../Components/TableCol/TableCol';
+import ModalImage from '../Components/ModalImage/ModalImage';
+import DeleteProductModal from '../Components/DeleteProductModal/DeleteProductModal';
+import useApi from '../hooks/useApi';
 
 const Inventory = () => {
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' })
+  const { loading: apiLoading, error: apiError, getProducts, deleteProduct } = useApi();
+  
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
+  
   const [modalData, setModalData] = useState({
     open: false,
     img: '',
     caption: '',
     productId: null
-  })
+  });
 
   const [deleteConfirmation, setDeleteConfirmation] = useState({
     show: false,
     productId: null,
     productName: ''
-  })
+  });
 
+  // Handle opening/closing the image modal
   const modalHandler = (productId, productName) => {
     if (modalData.open === false) {
       // When opening the modal, set the product ID and name
       setModalData({
         open: true,
-        img: `${apiURL}/products/${productId}/image`,
+        img: `${import.meta.env.VITE_API_URL}/products/${productId}/image`,
         caption: productName,
         productId: productId
-      })
+      });
     } else {
       // When closing the modal
       setModalData({
@@ -42,115 +43,104 @@ const Inventory = () => {
         img: '',
         caption: '',
         productId: null
-      })
+      });
     }
-  }
+  };
 
-  const getProducts = async () => {
-    try {
-      setLoading(true)
-      
-      const response = await fetch(`${apiURL}/products/`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`)
+  // Load products on component mount
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        const data = await getProducts();
+        setProducts(data);
+        setSubmitStatus({ type: '', message: '' });
+      } catch (error) {
+        console.error('Error loading products:', error);
+        setSubmitStatus({
+          type: 'error',
+          message: `Failed to load products: ${error.message}`
+        });
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const data = await response.json()
-      return data
+    loadProducts();
+  }, [getProducts]);
 
-    } catch (error) {
-      console.error('Error fetching products:', error)
-      setSubmitStatus({ 
-        type: 'error', 
-        message: `Failed to fetch products: ${error.message}` 
-      })
-      return []
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Show delete confirmation dialog
   const showDeleteConfirmation = (productId, productName) => {
     setDeleteConfirmation({
       show: true,
       productId,
       productName
-    })
-  }
+    });
+  };
 
+  // Hide delete confirmation dialog
   const hideDeleteConfirmation = () => {
     setDeleteConfirmation({
       show: false,
       productId: null,
       productName: ''
-    })
-  }
+    });
+  };
 
+  // Handle product deletion
   const handleDeleteProduct = async () => {
     try {
-      const productId = deleteConfirmation.productId
+      const productId = deleteConfirmation.productId;
       
-      if (!productId) return
+      if (!productId) return;
       
-      const response = await fetch(`${apiURL}/products/${productId}`, {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`)
-      }
-
-      const result = await response.json()
+      const result = await deleteProduct(productId);
       
       // Remove the product from the state
-      setProducts(products.filter(product => product.product_id !== productId))
+      setProducts(products.filter(product => product.product_id !== productId));
       
-      setSubmitStatus({ 
-        type: 'success', 
-        message: result.message || 'Product successfully deleted' 
-      })
+      setSubmitStatus({
+        type: 'success',
+        message: result.message || 'Product successfully deleted'
+      });
       
       // Hide the confirmation dialog
-      hideDeleteConfirmation()
+      hideDeleteConfirmation();
       
     } catch (error) {
-      console.error('Error deleting product:', error)
-      setSubmitStatus({ 
-        type: 'error', 
-        message: `Failed to delete product: ${error.message}` 
-      })
+      console.error('Error deleting product:', error);
+      setSubmitStatus({
+        type: 'error',
+        message: `Failed to delete product: ${error.message}`
+      });
       
       // Hide the confirmation dialog
-      hideDeleteConfirmation()
+      hideDeleteConfirmation();
     }
-  }
+  };
 
+  // Display any API errors
   useEffect(() => {
-    const fetchData = async () => {
-      const data = await getProducts()
-      setProducts(data)
+    if (apiError) {
+      setSubmitStatus({
+        type: 'error',
+        message: apiError
+      });
     }
-    fetchData()
-  }, [])
-
-  // Use the fetched products or the items array as fallback
-  const displayItems = products
+  }, [apiError]);
 
   return (
     <>
-      <ModalImage data={modalData} handler={modalHandler}/>
+      <ModalImage data={modalData} handler={modalHandler} />
       
       {/* Delete Confirmation Modal */}
-      {deleteConfirmation.show && (<DeleteProductModal deleteConfirmation={deleteConfirmation} hideDeleteConfirmation={hideDeleteConfirmation} handleDeleteProduct={handleDeleteProduct} />)}
+      {deleteConfirmation.show && (
+        <DeleteProductModal 
+          deleteConfirmation={deleteConfirmation} 
+          hideDeleteConfirmation={hideDeleteConfirmation} 
+          handleDeleteProduct={handleDeleteProduct} 
+        />
+      )}
       
       <div className="w-full overflow-x-hidden">
         {submitStatus.message && (
@@ -182,29 +172,29 @@ const Inventory = () => {
                   </TableRow>
                 </thead>
                 <tbody className='font-Josefin align-middle'>
-                  {displayItems.map(items => (
-                    <TableRow key={items.sku}>            
-                      <TableCol text={items.sku} key={`sku-${items.sku}`}/>
-                      <TableCol text={items.name} key={`name-${items.sku}`}/>
-                      <TableCol text={items.description} key={`desc-${items.sku}`}/>
-                      <TableCol text={items.condition} key={`cond-${items.sku}`}/>
-                      <TableCol text={items.category.category_name} key={`cat-${items.sku}`}/>
-                      <TableCol text={items.obtained_method} key={`ob_me-${items.sku}`}/>
-                      <TableCol text={items.location || "Colombia"} key={`location-${items.sku}`}/>
-                      <TableCol key={`image-${items.sku}`}>
-                        <div onClick={() => modalHandler(items.product_id, items.name)} className='text-secondaryBlue font-bold cursor-pointer'>
+                  {products.map(item => (
+                    <TableRow key={item.sku}>            
+                      <TableCol text={item.sku} key={`sku-${item.sku}`}/>
+                      <TableCol text={item.name} key={`name-${item.sku}`}/>
+                      <TableCol text={item.description} key={`desc-${item.sku}`}/>
+                      <TableCol text={item.condition} key={`cond-${item.sku}`}/>
+                      <TableCol text={item.category.category_name} key={`cat-${item.sku}`}/>
+                      <TableCol text={item.obtained_method} key={`ob_me-${item.sku}`}/>
+                      <TableCol text={item.location || "Colombia"} key={`location-${item.sku}`}/>
+                      <TableCol key={`image-${item.sku}`}>
+                        <div onClick={() => modalHandler(item.product_id, item.name)} className='text-secondaryBlue font-bold cursor-pointer'>
                           Image
                         </div>
                       </TableCol>
-                      <TableCol key={`edit-${items.sku}`}>
-                        <Link className='text-secondaryBlue font-bold' to={`/edit-product/${items.product_id}`}>
+                      <TableCol key={`edit-${item.sku}`}>
+                        <Link className='text-secondaryBlue font-bold' to={`/edit-product/${item.product_id}`}>
                           Edit
                         </Link>
                       </TableCol>
-                      <TableCol key={`delete-${items.sku}`}>
+                      <TableCol key={`delete-${item.sku}`}>
                         <div 
                           className='text-mainRed font-bold cursor-pointer'
-                          onClick={() => showDeleteConfirmation(items.product_id, items.name)}
+                          onClick={() => showDeleteConfirmation(item.product_id, item.name)}
                         >
                           Delete
                         </div>
@@ -218,7 +208,7 @@ const Inventory = () => {
         )}
       </div>
     </>
-  )
-}
+  );
+};
 
-export default Inventory
+export default Inventory;
