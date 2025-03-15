@@ -1,4 +1,4 @@
-from pydantic import BaseModel, constr, EmailStr, condecimal, conint, Field
+from pydantic import BaseModel, constr, EmailStr, condecimal, conint, Field, validator
 from typing import Optional, List, Union
 from datetime import datetime, date
 from decimal import Decimal
@@ -17,9 +17,20 @@ class ProductBase(BaseModel):
     description: Optional[str] = None
     condition: str = Field(..., pattern='^(Mint|Near Mint|Excelent|Good|Lightly Played|Played|Poor)$')
     location: Optional[str] = Field(None, max_length=100)
-    purchase_date: date
+    purchase_date: Union[str, date]
     obtained_method: str = Field(..., min_length=1, max_length=50)
 
+    @validator('purchase_date')
+    def parse_date(cls, v):
+        if isinstance(v, date):
+            return v
+        try:
+            return datetime.strptime(v, "%Y-%m-%d").date()
+        except ValueError:
+            try:
+                return datetime.fromisoformat(v.replace('Z', '+00:00')).date()
+            except ValueError:
+                raise ValueError('Invalid date format. Use YYYY-MM-DD')
 # Now let's create schemas for creating new records
 
 class CategoryCreate(CategoryBase):
@@ -51,7 +62,8 @@ class PricePointBase(BaseModel):
     selling_price: Decimal = Field(..., ge=0)
     market_price: Optional[Decimal] = Field(None, ge=0)
     currency: str = Field(..., pattern='^[A-Z]{3}$')
-    effective_from: datetime
+    effective_from: Optional[datetime] = None
+
 
 class PricePointCreate(PricePointBase):
     """Schema for creating a new price point"""
