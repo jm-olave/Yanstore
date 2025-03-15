@@ -39,6 +39,7 @@ app.add_middleware(
         "http://192.168.2.138:5173",
         "https://yanstoreapi-bzercjhpe2d4aueh.canadacentral-01.azurewebsites.net",
         "https://magenta-paprenjak-8434f9.netlify.app",
+        "https://stupendous-mermaid-4ecc91.netlify.app",
         "http://172.29.223.73:5173"],  # Add your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
@@ -101,6 +102,52 @@ def list_categories(
     categories = db.query(models.ProductCategory).offset(skip).limit(limit).all()
     return categories
 
+@app.delete("/categories/{category_id}", response_model=dict)
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a category (marks it as inactive or removes it if no products associated)"""
+    # Check if category exists
+    db_category = db.query(models.ProductCategory).filter(
+        models.ProductCategory.category_id == category_id
+    ).first()
+    
+    if not db_category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    # Check if category has associated products
+    associated_products = db.query(models.Product).filter(
+        models.Product.category_id == category_id,
+        models.Product.is_active == True
+    ).count()
+    
+    if associated_products > 0:
+        # For categories with active products, we can't delete them
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot delete category with {associated_products} active products. Deactivate or reassign products first."
+        )
+    
+    try:
+        # Delete the category
+        db.delete(db_category)
+        db.commit()
+        
+        return {
+            "success": True, 
+            "message": f"Category '{db_category.category_name}' has been deleted",
+            "category_id": category_id
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while deleting the category: {str(e)}"
+        )
+
+
+
 # Product endpoints
 @app.post("/products/", response_model=schema.ProductResponse)
 async def create_product(
@@ -109,7 +156,7 @@ async def create_product(
     category_id: int = Form(...),
     description: Optional[str] = Form(None),
     condition: str = Form(...),
-    purchase_date: datetime = Form(...),
+    purchase_date: str = Form(...),
     location: Optional[str] = Form(None),
     obtained_method: str = Form(...),
     initial_quantity: Optional[int] = Form(1),
@@ -118,6 +165,32 @@ async def create_product(
 ):
     """Create a new product with all fields and optional image"""
     try:
+        try:
+            # Try different date formats
+            parsed_date = None
+            date_formats = [
+                "%Y-%m-%d",         # YYYY-MM-DD
+                "%Y-%m-%dT%H:%M:%S.%fZ",  # ISO format
+                "%Y-%m-%dT%H:%M:%SZ",     # ISO without milliseconds
+                "%m/%d/%Y",         # MM/DD/YYYY
+                "%d/%m/%Y",         # DD/MM/YYYY
+            ]
+            
+            for date_format in date_formats:
+                try:
+                    parsed_date = datetime.strptime(purchase_date, date_format)
+                    break
+                except ValueError:
+                    continue
+            
+            if parsed_date is None:
+                raise ValueError(f"Could not parse date: {purchase_date}")
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid date format: {str(e)}. Please use YYYY-MM-DD format."
+            )
     #First, we fetch the category from the database using the provided category_id
         category = db.query(models.ProductCategory).filter(
             models.ProductCategory.category_id == category_id
@@ -138,7 +211,7 @@ async def create_product(
         # 3. Combine the category prefix with timestamp to create the SKU
         sku = f"{category_prefix}{timestamp}"
         # Validate the condition value explicitly
-        valid_conditions = ["Mint", "Near Mint", "Excelent", "Good", "Lightly Played", "Played", "Poor", "New", "Used", "Damaged"]
+        valid_conditions = ["Mint", "Near Mint", "Excellent", "Good", "Lightly Played", "Played", "Poor", "New", "Used", "Damaged"]
         if condition not in valid_conditions:
             raise HTTPException(
                 status_code=400,
@@ -454,7 +527,10 @@ def create_price_point(
         ).first()
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
-
+        
+        price_point_data = price_point.dict(exclude_unset=True)
+        if price_point_data.get('effective_from') is None:
+            price_point_data.pop('effective_from', None)
         db_price_point = models.PricePoint(**price_point.dict())
         db.add(db_price_point)
         db.commit()
@@ -463,6 +539,61 @@ def create_price_point(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Invalid price point data")
+
+@app.get("/products/{product_id}/price-points/", response_model=List[schema.PricePointResponse])
+def get_product_price_points(
+    product_id: int,
+    skip: int = 0,
+    limit: int = 10,
+    current_only: bool = False,
+    db: Session = Depends(get_db)
+):
+    """
+    Get price points for a specific product.
+    
+    Parameters:
+    - product_id: ID of the product to get price points for
+    - skip: Number of records to skip (for pagination)
+    - limit: Maximum number of records to return
+    - current_only: If True, returns only the current/active price point
+    
+    Returns:
+    - List of price points for the product
+    """
+    # Check if product exists
+    product = db.query(models.Product).filter(
+        models.Product.product_id == product_id
+    ).first()
+    
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Build the query
+    query = db.query(models.PricePoint).filter(
+        models.PricePoint.product_id == product_id
+    )
+    
+    # If current_only is True, filter for the active price point
+    if current_only:
+        from datetime import datetime
+        current_time = datetime.now()
+        query = query.filter(
+            (models.PricePoint.effective_from <= current_time) &
+            ((models.PricePoint.effective_to.is_(None)) | (models.PricePoint.effective_to >= current_time))
+        )
+    
+    # Order by most recent first
+    query = query.order_by(models.PricePoint.effective_from.desc())
+    
+    # Apply pagination
+    price_points = query.offset(skip).limit(limit).all()
+    
+    return price_points
+
+
+
+
+
 
 @app.post("/sales/", response_model=schema.SaleResponse)
 def register_sale(

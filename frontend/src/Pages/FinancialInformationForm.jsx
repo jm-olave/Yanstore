@@ -42,7 +42,7 @@ const FinancialInformationForm = () => {
 
   const fetchProductDetails = async (id) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/products/${productId}`)
+      const response = await fetch(`https://yanstore-api-6e6412b99156.herokuapp.com/products/${productId}`)
       if (!response.ok) throw new Error('Failed to fetch product details')
       const data = await response.json()
       setProduct(data)
@@ -85,7 +85,7 @@ const FinancialInformationForm = () => {
       setSubmitStatus({ type: '', message: '' })
 
       // First, create the price point
-      const pricePointResponse = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/price-points/', {
+      const pricePointResponse = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/price-points', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -101,7 +101,7 @@ const FinancialInformationForm = () => {
       if (!pricePointResponse.ok) throw new Error('Failed to create price point')
 
       // Then, register the sale
-      const saleResponse = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/sales/', {
+      const saleResponse = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/sales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

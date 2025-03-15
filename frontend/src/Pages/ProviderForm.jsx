@@ -43,7 +43,7 @@ const paymentTermsOptions = [
   
 ]
 
-const apiURL = 'https://yanstore-api-6e6412b99156.herokuapp.com/'
+const apiURL = 'https://yanstore-api-6e6412b99156.herokuapp.com'
 
 const ProviderForm = () => {
   const [form, setForm] = useState({
