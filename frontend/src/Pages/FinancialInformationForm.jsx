@@ -22,6 +22,7 @@ const FinancialInformationForm = () => {
     base_cost: '',
     selling_price: '',
     market_price: '',
+    shipment_cost: '0.00',  // New shipment cost field with default value
     currency: 'USD',
     payment_method: 'Select Option',
     sell_date: '',
@@ -42,7 +43,7 @@ const FinancialInformationForm = () => {
 
   const fetchProductDetails = async (id) => {
     try {
-      const response = await fetch(`https://yanstore-api-6e6412b99156.herokuapp.com/products/${productId}`)
+      const response = await fetch(`http://127.0.0.1:8000/products/${productId}`)
       if (!response.ok) throw new Error('Failed to fetch product details')
       const data = await response.json()
       setProduct(data)
@@ -68,6 +69,10 @@ const FinancialInformationForm = () => {
       setSubmitStatus({ type: 'error', message: 'Sale date is required' })
       return false
     }
+    if (form.shipment_cost && parseFloat(form.shipment_cost) < 0) {
+      setSubmitStatus({ type: 'error', message: 'Shipment cost cannot be negative' })
+      return false
+    }
     return true
   }
 
@@ -85,7 +90,7 @@ const FinancialInformationForm = () => {
       setSubmitStatus({ type: '', message: '' })
 
       // First, create the price point
-      const pricePointResponse = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/price-points', {
+      const pricePointResponse = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/price-points/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -93,6 +98,7 @@ const FinancialInformationForm = () => {
           base_cost: parseFloat(form.base_cost),
           selling_price: parseFloat(form.selling_price),
           market_price: form.market_price ? parseFloat(form.market_price) : null,
+          shipment_cost: parseFloat(form.shipment_cost || 0),  // Include shipment cost
           currency: form.currency,
           effective_from: form.effective_from
         })
@@ -101,7 +107,7 @@ const FinancialInformationForm = () => {
       if (!pricePointResponse.ok) throw new Error('Failed to create price point')
 
       // Then, register the sale
-      const saleResponse = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/sales', {
+      const saleResponse = await fetch('https://yanstore-api-6e6412b99156.herokuapp.com/sales/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -123,6 +129,7 @@ const FinancialInformationForm = () => {
         base_cost: '',
         selling_price: '',
         market_price: '',
+        shipment_cost: '0.00',
         currency: 'USD',
         payment_method: 'Select Option',
         sell_date: '',
@@ -181,6 +188,12 @@ const FinancialInformationForm = () => {
             name="market_price"
             title="Market Price (Optional)"
             value={form.market_price}
+            onChange={handleFormChange}
+          />
+          <NumberInput 
+            name="shipment_cost"
+            title="Shipment Cost"
+            value={form.shipment_cost}
             onChange={handleFormChange}
           />
         </div>

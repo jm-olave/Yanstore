@@ -64,7 +64,8 @@ const Inventory = () => {
                 return {
                   ...product,
                   base_cost: pricePoints[0].base_cost,
-                  selling_price: pricePoints[0].selling_price
+                  selling_price: pricePoints[0].selling_price,
+                  shipment_cost: pricePoints[0].shipment_cost || 0
                 };
               }
             }
@@ -140,6 +141,12 @@ const Inventory = () => {
     }
   };
 
+
+  // Format currency
+  const formatCurrency = (value) => {
+    if (value === undefined || value === null) return '-';
+    return `$${parseFloat(value).toFixed(2)}`;
+  };
   // Display any API errors
   useEffect(() => {
     if (apiError) {
@@ -185,6 +192,8 @@ const Inventory = () => {
                     <TableCol text='CONDITION' key='CONDITION'/>
                     <TableCol text='CATEGORY' key='CATEGORY'/>
                     <TableCol text='BASE COST' key='BASE-COST'/>
+                    <TableCol text='SELLING PRICE' key='SELLING-PRICE'/>
+                    <TableCol text='SHIPMENT COST' key='SHIPMENT-COST'/>
                     <TableCol text='OBT METHOD' key='OBT-METHOD'/>
                     <TableCol text='LOCATION' key='LOCATION'/>
                     <TableCol text='DESC' key='DESC'/>
@@ -201,6 +210,8 @@ const Inventory = () => {
                       <TableCol text={item.condition} key={`cond-${item.sku}`}/>
                       <TableCol text={item.category.category_name} key={`cat-${item.sku}`}/>
                       <TableCol text={item.base_cost ? `$${Number(item.base_cost).toFixed(2)}` : 'N/A'} key={`cost-${item.sku}`}/>
+                      <TableCol text={formatCurrency(item.selling_price)} key={`selling-price-${item.sku}`}/>
+                      <TableCol text={formatCurrency(item.shipment_cost)} key={`shipment-cost-${item.sku}`}/>
                       <TableCol text={item.obtained_method} key={`ob_me-${item.sku}`}/>
                       <TableCol text={item.location || "Colombia"} key={`location-${item.sku}`}/>
                       <TableCol text={item.description} key={`desc-${item.sku}`}/>

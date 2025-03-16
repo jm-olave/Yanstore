@@ -109,6 +109,7 @@ class PricePoint(Base):
     base_cost = Column(Numeric(10, 2), nullable=False)
     selling_price = Column(Numeric(10, 2), nullable=False)
     market_price = Column(Numeric(10, 2))
+    shipment_cost = Column(Numeric(10, 2), default=0.00, nullable=False)
     currency = Column(String(3), default='USD')
     effective_from = Column(DateTime(timezone=True), server_default=func.now())
     effective_to = Column(DateTime(timezone=True))

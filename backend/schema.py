@@ -61,6 +61,7 @@ class PricePointBase(BaseModel):
     base_cost: Decimal = Field(..., ge=0)
     selling_price: Decimal = Field(..., ge=0)
     market_price: Optional[Decimal] = Field(None, ge=0)
+    shipment_cost: Decimal = Field(0.00, ge=0)
     currency: str = Field(..., pattern='^[A-Z]{3}$')
     effective_from: Optional[datetime] = None
 

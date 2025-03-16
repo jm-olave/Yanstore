@@ -73,7 +73,9 @@ const ProductForm = () => {
     image: null,
     description: '',
     initial_quantity: 1,
-    base_cost: ''
+    base_cost: '0.0',
+    selling_price: '',
+    shipment_cost: '0.0'
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -96,13 +98,16 @@ const ProductForm = () => {
         
         // Fetch the latest price point for this product
         let baseCost = '';
-        
+        let sellingPrice = '';
+        let shipmentCost = '0.00';
+
         try {
           const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/products/${productId}/price-points/?current_only=true&limit=1`);
           if (response.ok) {
             const pricePoints = await response.json();
             if (pricePoints && pricePoints.length > 0) {
-              baseCost = pricePoints[0].base_cost;
+              sellingPrice = pricePoints[0].selling_price.toString();
+              shipmentCost = pricePoints[0].shipment_cost ? pricePoints[0].shipment_cost.toString() : '0.00';
             }
           }
         } catch (priceError) {
@@ -119,7 +124,9 @@ const ProductForm = () => {
           description: productData.description || '',
           image: null, // We don't load the existing image as it can't be displayed in the file input
           initial_quantity: 1,
-          base_cost: baseCost
+          base_cost: baseCost,
+          selling_price: sellingPrice,
+          shipment_cost: shipmentCost
         })
       } catch (error) {
         setSubmitStatus({
@@ -176,6 +183,14 @@ const ProductForm = () => {
       setSubmitStatus({ type: 'error', message: 'Base cost is required and must be greater than 0' })
       return false
     }
+    if (!form.selling_price || parseFloat(form.selling_price) <= 0) {
+      setSubmitStatus({ type: 'error', message: 'Selling price is required and must be greater than 0' })
+      return false
+    }
+    if (form.shipment_cost && parseFloat(form.shipment_cost) < 0) {
+      setSubmitStatus({ type: 'error', message: 'Shipment cost cannot be negative' })
+      return false
+    }
     
     // Additional validation to ensure the date is not in the future
     const selectedDate = new Date(form.purchase_date)
@@ -221,8 +236,9 @@ const ProductForm = () => {
             await createPricePoint({
               product_id: parseInt(productId),
               base_cost: parseFloat(form.base_cost),
-              selling_price: parseFloat(form.base_cost) * 1.3, // Set a default selling price as 30% markup
-              market_price: parseFloat(form.base_cost) * 1.3, // Set market price same as selling price by default
+              selling_price: parseFloat(form.selling_price), // Set a default selling price as 30% markup
+              market_price: parseFloat(form.base_cost) * 1.3,
+              shipment_cost: parseFloat(form.shipment_cost), // Set market price same as selling price by default
               currency: 'USD',
               effective_from: new Date().toISOString()
             });
@@ -262,15 +278,16 @@ const ProductForm = () => {
         if (form.image) {
           formData.append('image', form.image)
         }
-
-        const newProduct = await createProduct(formData)
+        
+        const newProduct = await createProduct(formData)  
         
         // Create a price point for the new product
         await createPricePoint({
           product_id: newProduct.product_id,
           base_cost: parseFloat(form.base_cost),
-          selling_price: parseFloat(form.base_cost) * 1.3, // Set a default selling price as 30% markup
-          market_price: parseFloat(form.base_cost) * 1.3, // Set market price same as selling price by default
+          selling_price: parseFloat(form.selling_price), // Set a default selling price as 30% markup
+          market_price: parseFloat(form.base_cost) * 1.3,
+          shipment_cost: parseFloat(form.shipment_cost), 
           currency: 'USD',
           effective_from: new Date().toISOString()
         })
@@ -291,7 +308,9 @@ const ProductForm = () => {
           image: null,
           description: '',
           initial_quantity: 1,
-          base_cost: ''
+          base_cost: '',
+          selling_price: '',
+          shipment_cost: '0.00'
         })
       }
 
@@ -426,16 +445,6 @@ const ProductForm = () => {
             required
           />
 
-          <div className='lg:col-span-2'>
-            <NumberInput 
-              name='base_cost'
-              title='Base Cost'
-              value={form.base_cost}
-              onChange={handleFormChange}
-              required
-            />
-          </div>
-
           {!isEditMode && (
             <ImageInput 
               name='image' 
@@ -444,6 +453,33 @@ const ProductForm = () => {
             />
           )}
         </div>
+        {/* Financial information section */}
+        <div className='lg:col-span-2 mt-4'>
+          <h3 className="text-lg font-semibold text-secondaryBlue mb-3">Financial Information</h3>
+          <div className='lg:grid lg:grid-cols-3 lg:gap-4'>
+            <NumberInput 
+              name='base_cost'
+              title='Base Cost'
+              value={form.base_cost}
+              onChange={handleFormChange}
+              required
+            />
+            <NumberInput 
+              name='selling_price'
+              title='Selling Price'
+              value={form.selling_price}
+              onChange={handleFormChange}
+              required
+            />
+            <NumberInput 
+              name='shipment_cost'
+              title='Shipment Cost'
+              value={form.shipment_cost}
+              onChange={handleFormChange}
+            />
+          </div>
+        </div>
+        
         
         <div className='lg:col-span-2'>
           <TextAreaInput 
