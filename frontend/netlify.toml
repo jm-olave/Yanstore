@@ -13,7 +13,7 @@
 # Production context: This is the build we'll
 # use when a merge to "main" occurs
 [context.production]
-  command = "npm run build:prod"
+  command = "npm install --save-dev terser && npm run build:prod"
   
 # Branch deploy context: Deploy all non-master branches
 [context.branch-deploy]
