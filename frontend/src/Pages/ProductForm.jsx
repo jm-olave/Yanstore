@@ -73,9 +73,9 @@ const ProductForm = () => {
     image: null,
     description: '',
     initial_quantity: 1,
-    base_cost: '0.0',
+    base_cost: '',
     selling_price: '',
-    shipment_cost: '0.0'
+    shipment_cost: ''
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -99,7 +99,7 @@ const ProductForm = () => {
         // Fetch the latest price point for this product
         let baseCost = '';
         let sellingPrice = '';
-        let shipmentCost = '0.00';
+        let shipmentCost = '';
 
         try {
           const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/products/${productId}/price-points/?current_only=true&limit=1`);
@@ -310,7 +310,7 @@ const ProductForm = () => {
           initial_quantity: 1,
           base_cost: '',
           selling_price: '',
-          shipment_cost: '0.00'
+          shipment_cost: ''
         })
       }
 
