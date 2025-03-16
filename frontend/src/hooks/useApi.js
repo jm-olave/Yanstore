@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 // Get API URL from environment with fallback
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://new-yanstore-api-c29287e7c68d.herokuapp.com';
 
 /**
  * Custom hook for making API calls
@@ -18,8 +18,12 @@ export const useApi = () => {
    * @returns {Promise<any>} Response data
    */
   const fetchData = useCallback(async (endpoint, options = {}) => {
-    const url = `${API_URL}${endpoint}`;
-    
+
+    const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+    // Ensure endpoint starts with a slash
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  
+    const url = `${baseUrl}${normalizedEndpoint}`;
     console.log(`API Request: ${options.method || 'GET'} ${url}`);
     
     try {
