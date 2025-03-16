@@ -1,21 +1,16 @@
 # Use Python 3.11 slim image
 FROM python:3.11-slim
 
-# Install Rust and required dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    pkg-config \
-    libssl-dev \
-    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Add Rust to PATH
-ENV PATH="/root/.cargo/bin:${PATH}"
-
 # Set working directory
 WORKDIR /app
+
+# Install any required system dependencies
+# This is now much simpler without Rust
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    gcc \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
