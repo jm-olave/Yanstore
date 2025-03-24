@@ -1,0 +1,15 @@
+{
+    "name": "yanstore",
+    "version": "1.0.0",
+    "description": "Yanstore application",
+    "engines": {
+      "node": "16.x"
+    },
+    "scripts": {
+      "build": "cd backend && pip install -r requirements.txt",
+      "start": "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    },
+    "cacheDirectories": [
+      "node_modules"
+    ]
+  }

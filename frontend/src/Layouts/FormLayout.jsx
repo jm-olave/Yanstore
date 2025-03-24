@@ -1,5 +1,5 @@
 import React from 'react'
-import { NavLink, Outlet } from 'react-router'
+import { NavLink, Outlet } from 'react-router-dom'
 import BackArrow from '../Images/BackArrow.svg'
 
 const FormLayout = ({ title }) => {

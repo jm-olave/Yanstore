@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import TableRow from '../Components/TableRow/TableRow';
 import TableCol from '../Components/TableCol/TableCol';
 import ModalImage from '../Components/ModalImage/ModalImage';
