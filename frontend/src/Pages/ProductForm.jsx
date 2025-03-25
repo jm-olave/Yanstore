@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import InputSelect from '../Components/SelectInput/InputSelect'
 import TextInput from '../Components/TextInput/TextInput'
 import DateInput from '../Components/DateInput/DateInput'
@@ -9,6 +9,7 @@ import NumberInput from '../Components/NumberInput/NumberInput'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
 import useApi from '../hooks/useApi'
 import useDateUtils from '../hooks/useDate'
+import GradientButton from '../Components/GradientButton/GradientButton'
 
 const obtainingMethods = [
   { value: 'Select Option', label: 'Select Option' },
@@ -314,11 +315,6 @@ const ProductForm = () => {
         })
       }
 
-      // Navigate back to inventory after successful submission
-      setTimeout(() => {
-        navigate('/inventory')
-      }, 500)
-
     } catch (error) {
       setSubmitStatus({ 
         type: 'error', 
@@ -491,12 +487,21 @@ const ProductForm = () => {
           />
         </div>
 
-        <div className='w-2/3 mt-8 mx-auto max-w-xs lg:col-start-2 lg:m-0 lg:justify-self-end'>
-          <SubmitButton 
-            text={isSubmitting || apiLoading ? 'SUBMITTING...' : isEditMode ? 'UPDATE PRODUCT' : 'ADD PRODUCT'} 
-            type="submit"
-            disabled={isSubmitting || apiLoading}
-          />
+        <div className='w-full max-w-xs mx-auto lg:col-start-2 lg:m-0 lg:justify-self-end lg:max-w-md'>
+          <div className='flex w-full flex-col gap-3 lg:flex-row'>
+            <SubmitButton 
+              text={isSubmitting || apiLoading ? 'SUBMITTING...' : isEditMode ? 'UPDATE PRODUCT' : 'ADD PRODUCT'} 
+              type="submit"
+              disabled={isSubmitting || apiLoading}
+            />
+
+            <button className='w-full p-3 font-Mulish font-black text-white text-xl border bg-gradient-radial from-secondaryBlue to-mainBlue md:max-w-15 lg:max-w-sm'>
+              <Link to='/inventory'>
+                Go to Inventory
+              </Link>
+            </button>
+          </div>
+          
         </div>
       </form>
     </div>
