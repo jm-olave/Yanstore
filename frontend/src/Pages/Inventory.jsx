@@ -4,12 +4,16 @@ import TableRow from '../Components/TableRow/TableRow';
 import TableCol from '../Components/TableCol/TableCol';
 import ModalImage from '../Components/ModalImage/ModalImage';
 import DeleteItemModal from '../Components/DeleteItemModal/DeleteItemModal';
+import InputSelect from '../Components/SelectInput/InputSelect';
 import useApi from '../hooks/useApi';
 
 const Inventory = () => {
-  const { loading: apiLoading, error: apiError, getProducts, deleteProduct } = useApi();
+  const { loading: apiLoading, error: apiError, getProducts, getCategories, deleteProduct } = useApi();
   
   const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // Store all products to use for filtering
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
   const loading = apiLoading;
   
@@ -47,15 +51,26 @@ const Inventory = () => {
     }
   };
 
-  // Load products on component mount
+  // Load products and categories on component mount
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadData = async () => {
       try {
+        // Get all categories
+        const categoriesData = await getCategories();
+        const mappedCategories = [
+          { value: 'all', label: 'All Categories' },
+          ...categoriesData.map(cat => ({
+            value: cat.category_id.toString(),
+            label: cat.category_name
+          }))
+        ];
+        setCategories(mappedCategories);
+        
         // Get all products
-        const data = await getProducts();
+        const productsData = await getProducts();
         
         // For each product, fetch the current price point
-        const productsWithPricing = await Promise.all(data.map(async (product) => {
+        const productsWithPricing = await Promise.all(productsData.map(async (product) => {
           try {
             const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/products/${product.product_id}/price-points/?current_only=true&limit=1`);
             if (response.ok) {
@@ -77,19 +92,35 @@ const Inventory = () => {
           }
         }));
         
-        setProducts(productsWithPricing);
+        setAllProducts(productsWithPricing);
+        setProducts(productsWithPricing); // Initially show all products
         setSubmitStatus({ type: '', message: '' });
       } catch (error) {
-        console.error('Error loading products:', error);
+        console.error('Error loading data:', error);
         setSubmitStatus({
           type: 'error',
-          message: `Failed to load products: ${error.message}`
+          message: `Failed to load data: ${error.message}`
         });
       }
     };
 
-    loadProducts();
-  }, [getProducts]);
+    loadData();
+  }, [getProducts, getCategories]);
+
+  // Filter products when category changes
+  const handleCategoryChange = (e) => {
+    const categoryId = e.target.value;
+    setSelectedCategory(categoryId);
+    
+    if (categoryId === 'all') {
+      setProducts(allProducts);
+    } else {
+      const filteredProducts = allProducts.filter(product => 
+        product.category_id.toString() === categoryId
+      );
+      setProducts(filteredProducts);
+    }
+  };
 
   // Show delete confirmation dialog
   const showDeleteConfirmation = (productId, productName) => {
@@ -118,8 +149,18 @@ const Inventory = () => {
       
       const result = await deleteProduct(productId);
       
-      // Remove the product from the state
-      setProducts(products.filter(product => product.product_id !== productId));
+      // Remove the product from both states
+      const updatedProducts = allProducts.filter(product => product.product_id !== productId);
+      setAllProducts(updatedProducts);
+      
+      // Update filtered products based on current category
+      if (selectedCategory === 'all') {
+        setProducts(updatedProducts);
+      } else {
+        setProducts(updatedProducts.filter(product => 
+          product.category_id.toString() === selectedCategory
+        ));
+      }
       
       setSubmitStatus({
         type: 'success',
@@ -141,12 +182,12 @@ const Inventory = () => {
     }
   };
 
-
   // Format currency
   const formatCurrency = (value) => {
     if (value === undefined || value === null) return '-';
     return `$${parseFloat(value).toFixed(2)}`;
   };
+  
   // Display any API errors
   useEffect(() => {
     if (apiError) {
@@ -177,6 +218,26 @@ const Inventory = () => {
           </div>
         )}
         
+        {/* Category Filter */}
+        <div className="w-11/12 mx-auto max-w-7xl mb-6">
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            <div className="md:w-1/3">
+              <InputSelect 
+                name="categoryFilter"
+                title="Filter by Category"
+                value={selectedCategory}
+                options={categories}
+                onChange={handleCategoryChange}
+              />
+            </div>
+            <div className="md:w-2/3 md:flex md:justify-end">
+              <div className="text-secondaryBlue font-semibold">
+                {products.length} products found
+              </div>
+            </div>
+          </div>
+        </div>
+        
         {loading ? (
           <div className="text-center py-8">
             <p>Loading inventory data...</p>
@@ -203,38 +264,46 @@ const Inventory = () => {
                   </TableRow>
                 </thead>
                 <tbody className='font-Josefin align-middle'>
-                  {products.map(item => (
-                    <TableRow key={item.sku}>            
-                      <TableCol text={item.sku} key={`sku-${item.sku}`}/>
-                      <TableCol text={item.name} key={`name-${item.sku}`}/>
-                      <TableCol text={item.condition} key={`cond-${item.sku}`}/>
-                      <TableCol text={item.category.category_name} key={`cat-${item.sku}`}/>
-                      <TableCol text={item.base_cost ? `$${Number(item.base_cost).toFixed(2)}` : 'N/A'} key={`cost-${item.sku}`}/>
-                      <TableCol text={formatCurrency(item.selling_price)} key={`selling-price-${item.sku}`}/>
-                      <TableCol text={formatCurrency(item.shipment_cost)} key={`shipment-cost-${item.sku}`}/>
-                      <TableCol text={item.obtained_method} key={`ob_me-${item.sku}`}/>
-                      <TableCol text={item.location || "Colombia"} key={`location-${item.sku}`}/>
-                      <TableCol text={item.description} key={`desc-${item.sku}`}/>
-                      <TableCol key={`image-${item.sku}`}>
-                        <div onClick={() => modalHandler(item.product_id, item.name)} className='text-secondaryBlue font-bold cursor-pointer'>
-                          Image
-                        </div>
-                      </TableCol>
-                      <TableCol key={`edit-${item.sku}`}>
-                        <Link className='text-secondaryBlue font-bold' to={`/edit-product/${item.product_id}`}>
-                          Edit
-                        </Link>
-                      </TableCol>
-                      <TableCol key={`delete-${item.sku}`}>
-                        <div 
-                          className='text-mainRed font-bold cursor-pointer'
-                          onClick={() => showDeleteConfirmation(item.product_id, item.name)}
-                        >
-                          Delete
-                        </div>
+                  {products.length > 0 ? (
+                    products.map(item => (
+                      <TableRow key={item.sku}>            
+                        <TableCol text={item.sku} key={`sku-${item.sku}`}/>
+                        <TableCol text={item.name} key={`name-${item.sku}`}/>
+                        <TableCol text={item.condition} key={`cond-${item.sku}`}/>
+                        <TableCol text={item.category?.category_name || 'Unknown'} key={`cat-${item.sku}`}/>
+                        <TableCol text={item.base_cost ? `$${Number(item.base_cost).toFixed(2)}` : 'N/A'} key={`cost-${item.sku}`}/>
+                        <TableCol text={formatCurrency(item.selling_price)} key={`selling-price-${item.sku}`}/>
+                        <TableCol text={formatCurrency(item.shipment_cost)} key={`shipment-cost-${item.sku}`}/>
+                        <TableCol text={item.obtained_method} key={`ob_me-${item.sku}`}/>
+                        <TableCol text={item.location || "Colombia"} key={`location-${item.sku}`}/>
+                        <TableCol text={item.description} key={`desc-${item.sku}`}/>
+                        <TableCol key={`image-${item.sku}`}>
+                          <div onClick={() => modalHandler(item.product_id, item.name)} className='text-secondaryBlue font-bold cursor-pointer'>
+                            Image
+                          </div>
+                        </TableCol>
+                        <TableCol key={`edit-${item.sku}`}>
+                          <Link className='text-secondaryBlue font-bold' to={`/edit-product/${item.product_id}`}>
+                            Edit
+                          </Link>
+                        </TableCol>
+                        <TableCol key={`delete-${item.sku}`}>
+                          <div 
+                            className='text-mainRed font-bold cursor-pointer'
+                            onClick={() => showDeleteConfirmation(item.product_id, item.name)}
+                          >
+                            Delete
+                          </div>
+                        </TableCol>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCol colSpan="13" className="text-center py-4">
+                        <div>No products found in this category.</div>
                       </TableCol>
                     </TableRow>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
