@@ -192,10 +192,10 @@ const ProductForm = () => {
     }
 
     // Validate base cost
-    if (!form.base_cost || parseFloat(form.base_cost) <= 0) {
+    if (!form.base_cost) {
       setSubmitStatus({
         type: "error",
-        message: "Base cost is required and must be greater than 0",
+        message: "Base cost is required",
       });
       return false;
     }
