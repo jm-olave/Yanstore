@@ -261,9 +261,9 @@ const ProductForm = () => {
             await createPricePoint({
               product_id: parseInt(productId),
               base_cost: parseFloat(form.base_cost),
-              selling_price: parseFloat(form.selling_price), // Set a default selling price as 30% markup
+              selling_price: parseFloat(form.selling_price), 
               market_price: parseFloat(form.base_cost) * 1.3,
-              shipment_cost: parseFloat(form.shipment_cost), // Set market price same as selling price by default
+              shipment_cost: parseFloat(form.shipment_cost),
               currency: "USD",
               effective_from: new Date().toISOString(),
             });
@@ -310,7 +310,7 @@ const ProductForm = () => {
         await createPricePoint({
           product_id: newProduct.product_id,
           base_cost: parseFloat(form.base_cost),
-          selling_price: parseFloat(form.selling_price), // Set a default selling price as 30% markup
+          selling_price: parseFloat(form.selling_price),
           market_price: parseFloat(form.base_cost) * 1.3,
           shipment_cost: parseFloat(form.shipment_cost),
           currency: "USD",
