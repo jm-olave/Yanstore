@@ -16,7 +16,6 @@ const Inventory = () => {
     'CONDITION',
     'CATEGORY',
     'BASE COST',
-    'SELLING PRICE',
     'SHIPMENT COST',
     'OBT METHOD',
     'LOCATION',
@@ -276,16 +275,15 @@ const Inventory = () => {
             <p>Loading inventory data...</p>
           </div>
         ) : (
-          <section className='w-11/12 mx-auto max-w-7xl'>
+          <section className='w-11/12 mx-auto max-w-screen-2xl'>
             <div className='overflow-x-auto relative'>
               <table className='w-full min-w-[800px]'>
                 <thead className='font-Mulish font-black text-secondaryBlue'>
                   <TableRow>
                     {tableHeaders.map(header => (
                       <TableCol text={header} key={header} onClick={() => handleSortClick(header)} className='cursor-pointer'>
-                        <div className='w-full h-full flex justify-between items-center'>
+                        <div className='w-full h-full flex justify-between items-center gap-3'>
                           {header}
-
                           {header === sort.keyToSort && (
                             <Caret className={sort.keyToSort === header ? sort.direction === 'asc' ? 'rotate-0' : 'rotate-180' : 'rotate-180'}/>
                           )}
@@ -307,7 +305,6 @@ const Inventory = () => {
                         <TableCol text={item.condition} key={`cond-${item.sku}`}/>
                         <TableCol text={item.category?.category_name || 'Unknown'} key={`cat-${item.sku}`}/>
                         <TableCol text={item.base_cost ? `$${Number(item.base_cost).toFixed(2)}` : 'N/A'} key={`cost-${item.sku}`}/>
-                        <TableCol text={formatCurrency(item.selling_price)} key={`selling-price-${item.sku}`}/>
                         <TableCol text={formatCurrency(item.shipment_cost)} key={`shipment-cost-${item.sku}`}/>
                         <TableCol text={item.obtained_method} key={`ob_me-${item.sku}`}/>
                         <TableCol text={item.location || "Colombia"} key={`location-${item.sku}`}/>

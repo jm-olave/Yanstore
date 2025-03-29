@@ -78,7 +78,7 @@ const ProductForm = () => {
     description: "",
     initial_quantity: 1,
     base_cost: "",
-    selling_price: "",
+    selling_price: "1",
     shipment_cost: "",
   });
 
@@ -135,7 +135,7 @@ const ProductForm = () => {
           image: null, // We don't load the existing image as it can't be displayed in the file input
           initial_quantity: 1,
           base_cost: baseCost,
-          selling_price: sellingPrice,
+          selling_price: '1',
           shipment_cost: shipmentCost,
         });
       } catch (error) {
@@ -334,7 +334,7 @@ const ProductForm = () => {
           description: "",
           initial_quantity: 1,
           base_cost: "",
-          selling_price: "",
+          selling_price: "1",
           shipment_cost: "",
         });
       }
@@ -397,7 +397,7 @@ const ProductForm = () => {
   }, [getCategories]);
 
   return (
-    <div className="w-11/12 pb-11 mx-auto lg:max-w-5xl">
+    <div className="w-11/12 pb-11 mx-auto lg:max-w-7xl">
       {submitStatus.message && (
         <div
           className={`mb-4 p-4 rounded-md ${
@@ -410,7 +410,7 @@ const ProductForm = () => {
         </div>
       )}
 
-      <form className="lg:grid lg:grid-cols-2 lg:gap-4" onSubmit={handleSubmit}>
+      <form className="lg:grid lg:grid-cols-3 lg:gap-4" onSubmit={handleSubmit}>
         <div className="flex flex-col justify-evenly">
           <TextInput
             name="name"
@@ -472,21 +472,19 @@ const ProductForm = () => {
             required
           />
 
-          {!isEditMode && (
-            <ImageInput
-              name="image"
-              title="Image"
-              onChange={handleFormChange}
-            />
-          )}
+          <ImageInput
+            name="image"
+            title="Image"
+            onChange={handleFormChange}
+          />
         </div>
         {/* Financial information section */}
-        <div className="lg:col-span-2 mt-4">
+        <div className="lg:col-start-3 mt-4">
           <h3 className="text-lg font-semibold text-secondaryBlue mb-3">
             Financial Information (USD)
           </h3>
-          <div className="lg:grid lg:grid-cols-3 lg:gap-4">
-            <div className="mb-4">
+          <div className="lg:grid lg:grid-cols-2 lg:grid-rows-2 lg:gap-4">
+            <div className="mb-4 lg:col-span-2">
               <NumberInput
                 name="base_cost"
                 title="Base Cost"
@@ -495,7 +493,7 @@ const ProductForm = () => {
                 required
               />
               {form.base_cost && !isNaN(parseFloat(form.base_cost)) && (
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="font-Josefin font-semibold text-sm text-secondaryBlue">
                   {exchangeRateLoading
                     ? "Loading..."
                     : convertToCOP(form.base_cost)}
@@ -503,7 +501,7 @@ const ProductForm = () => {
               )}
             </div>
 
-            <div className="mb-4">
+            {/* <div className="mb-4">
               <NumberInput
                 name="selling_price"
                 title="Selling Price"
@@ -518,9 +516,9 @@ const ProductForm = () => {
                     : convertToCOP(form.selling_price)}
                 </div>
               )}
-            </div>
+            </div> */}
 
-            <div className="mb-4">
+            <div className="mb-4 lg:row-start-2 lg:col-span-2">
               <NumberInput
                 name="shipment_cost"
                 title="Shipment Cost"
@@ -528,7 +526,7 @@ const ProductForm = () => {
                 onChange={handleFormChange}
               />
               {form.shipment_cost && !isNaN(parseFloat(form.shipment_cost)) && (
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="font-Josefin font-semibold text-sm text-secondaryBlue">
                   {exchangeRateLoading
                     ? "Loading..."
                     : convertToCOP(form.shipment_cost)}
@@ -538,7 +536,7 @@ const ProductForm = () => {
           </div>
         </div>
 
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3">
           <TextAreaInput
             name="description"
             title="Notes"
@@ -548,7 +546,7 @@ const ProductForm = () => {
           />
         </div>
 
-        <div className="w-full max-w-xs mx-auto lg:col-start-2 lg:m-0 lg:justify-self-end lg:max-w-md">
+        <div className="w-full max-w-xs mx-auto lg:col-start-3 lg:row-start-4 lg:m-0 lg:justify-self-end lg:max-w-md">
           <div className="flex w-full flex-col gap-3 lg:flex-row">
             <SubmitButton
               text={
