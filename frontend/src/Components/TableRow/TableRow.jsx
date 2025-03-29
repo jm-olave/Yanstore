@@ -1,9 +1,9 @@
 import React from 'react'
 import TableCol from '../TableCol/TableCol'
 
-const TableRow = ({ children }) => {
+const TableRow = ({ children, className }) => {
   return (
-    <tr className='text-center'>
+    <tr className={`text-center ${className}`}>
         {children}
     </tr>
   )

@@ -6,8 +6,23 @@ import ModalImage from '../Components/ModalImage/ModalImage';
 import DeleteItemModal from '../Components/DeleteItemModal/DeleteItemModal';
 import InputSelect from '../Components/SelectInput/InputSelect';
 import useApi from '../hooks/useApi';
+import Caret from '../Components/Caret/Caret';
 
 const Inventory = () => {
+
+  const tableHeaders = [
+    'SKU',
+    'NAME',
+    'CONDITION',
+    'CATEGORY',
+    'BASE COST',
+    'SELLING PRICE',
+    'SHIPMENT COST',
+    'OBT METHOD',
+    'LOCATION',
+    'DESCRIPTION',
+  ]
+
   const { loading: apiLoading, error: apiError, getProducts, getCategories, deleteProduct } = useApi();
   
   const [products, setProducts] = useState([]);
@@ -16,6 +31,7 @@ const Inventory = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
   const loading = apiLoading;
+  const [sort, setSort] = useState({ keyToSort: 'SKU', direction: 'asc' })
   
   const [modalData, setModalData] = useState({
     open: false,
@@ -198,6 +214,23 @@ const Inventory = () => {
     }
   }, [apiError]);
 
+  // Sort Functionality
+  const handleSortClick = (header) => {
+    setSort({
+      keyToSort: header,
+      direction: 
+        header === sort.keyToSort ? sort.direction === 'asc' ? 'desc' : 'asc' : 'desc'
+    })
+  }
+
+  const getSortedArray = (arrayToSort) => {
+    if (sort.direction === 'asc') {
+      return arrayToSort.sort((a, b) => (a[sort.keyToSort.toLocaleLowerCase()] > b[sort.keyToSort.toLocaleLowerCase()] ? 1 : -1))
+    } else {
+      return arrayToSort.sort((a, b) => (a[sort.keyToSort.toLocaleLowerCase()] > b[sort.keyToSort.toLocaleLowerCase()] ? -1 : 1))
+    }
+  }
+
   return (
     <>
       <ModalImage data={modalData} handler={modalHandler} />
@@ -220,17 +253,17 @@ const Inventory = () => {
         
         {/* Category Filter */}
         <div className="w-11/12 mx-auto max-w-7xl mb-6">
-          <div className="flex flex-col md:flex-row md:items-center gap-4">
-            <div className="md:w-1/3">
+          <div className="grid md:grid-cols-3">
+            <div className="col-span-2 max-w-96">
               <InputSelect 
                 name="categoryFilter"
-                title="Filter by Category"
+                title="Category"
                 value={selectedCategory}
                 options={categories}
                 onChange={handleCategoryChange}
               />
             </div>
-            <div className="md:w-2/3 md:flex md:justify-end">
+            <div className="flex justify-end items-center">
               <div className="text-secondaryBlue font-semibold">
                 {products.length} products found
               </div>
@@ -248,16 +281,18 @@ const Inventory = () => {
               <table className='w-full min-w-[800px]'>
                 <thead className='font-Mulish font-black text-secondaryBlue'>
                   <TableRow>
-                    <TableCol text='SKU' key='SKU'/>
-                    <TableCol text='NAME' key='NAME'/>
-                    <TableCol text='CONDITION' key='CONDITION'/>
-                    <TableCol text='CATEGORY' key='CATEGORY'/>
-                    <TableCol text='BASE COST' key='BASE-COST'/>
-                    <TableCol text='SELLING PRICE' key='SELLING-PRICE'/>
-                    <TableCol text='SHIPMENT COST' key='SHIPMENT-COST'/>
-                    <TableCol text='OBT METHOD' key='OBT-METHOD'/>
-                    <TableCol text='LOCATION' key='LOCATION'/>
-                    <TableCol text='DESC' key='DESC'/>
+                    {tableHeaders.map(header => (
+                      <TableCol text={header} key={header} onClick={() => handleSortClick(header)} className='cursor-pointer'>
+                        <div className='w-full h-full flex justify-between items-center'>
+                          {header}
+
+                          {header === sort.keyToSort && (
+                            <Caret className={sort.keyToSort === header ? sort.direction === 'asc' ? 'rotate-0' : 'rotate-180' : 'rotate-180'}/>
+                          )}
+                        </div>
+                        
+                      </TableCol>
+                    ))}
                     <TableCol text='IMAGE' key='IMAGE'/>
                     <TableCol text='EDIT' key='EDIT'/>
                     <TableCol text='DELETE' key='DELETE'/>
@@ -265,7 +300,7 @@ const Inventory = () => {
                 </thead>
                 <tbody className='font-Josefin align-middle'>
                   {products.length > 0 ? (
-                    products.map(item => (
+                    getSortedArray(products).map(item => (
                       <TableRow key={item.sku}>            
                         <TableCol text={item.sku} key={`sku-${item.sku}`}/>
                         <TableCol text={item.name} key={`name-${item.sku}`}/>
