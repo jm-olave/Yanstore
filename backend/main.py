@@ -757,3 +757,29 @@ if __name__ == "__main__":
     else:
         import uvicorn
         uvicorn.run("app", host="0.0.0.0", port=8000)
+
+# api calles exchange rate api 
+@app.get("/exchange-rates/")
+async def get_exchange_rates(base_currency: str = "USD"):
+    """Get current exchange rates with USD as the base currency"""
+    try:
+        # Use an exchange rate API or service
+        # For this example, we're using exchangerate-api.com
+        api_key = os.getenv("EXCHANGE_RATE_API_KEY")
+        url = f"https://v6.exchangerate-api.com/v6/{api_key}/latest/{base_currency}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            if response.status_code != 200:
+                raise HTTPException(status_code=response.status_code, detail="Failed to fetch exchange rates")
+            
+            data = response.json()
+            
+            if data.get("result") == "success":
+                return {"rates": data.get("conversion_rates", {})}
+            else:
+                raise HTTPException(status_code=500, detail="Failed to fetch exchange rates")
+    except Exception as e:
+        logger.error(f"Error fetching exchange rates: {str(e)}")
+        # Fallback to approximate values
+        return {"rates": {"COP": 4000, "EUR": 0.92, "GBP": 0.78}}
