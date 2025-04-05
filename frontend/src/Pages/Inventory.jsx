@@ -8,6 +8,8 @@ import InputSelect from '../Components/SelectInput/InputSelect';
 import useApi from '../hooks/useApi';
 import Caret from '../Components/Caret/Caret';
 
+const ITEMS_PER_PAGE = 10;
+
 const Inventory = () => {
 
   const tableHeaders = [
@@ -44,6 +46,9 @@ const Inventory = () => {
     productId: null,
     productName: ''
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Handle opening/closing the image modal
   const modalHandler = (productId, productName) => {
@@ -83,6 +88,7 @@ const Inventory = () => {
         
         // Get all products
         const productsData = await getProducts();
+        console.log('Initial products loaded:', productsData.length);
         
         // For each product, fetch the current price point
         const productsWithPricing = await Promise.all(productsData.map(async (product) => {
@@ -100,13 +106,25 @@ const Inventory = () => {
               }
             }
             // If we can't get price point, return the product without pricing
-            return product;
+            return {
+              ...product,
+              base_cost: null,
+              selling_price: null,
+              shipment_cost: null
+            };
           } catch (error) {
             console.error(`Error fetching price for product ${product.product_id}:`, error);
-            return product;
+            // Return the product without pricing instead of filtering it out
+            return {
+              ...product,
+              base_cost: null,
+              selling_price: null,
+              shipment_cost: null
+            };
           }
         }));
         
+        console.log('Products with pricing:', productsWithPricing.length);
         setAllProducts(productsWithPricing);
         setProducts(productsWithPricing); // Initially show all products
         setSubmitStatus({ type: '', message: '' });
@@ -230,6 +248,28 @@ const Inventory = () => {
     }
   }
 
+  // Calculate paginated products
+  const getPaginatedProducts = (products) => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return products.slice(startIndex, endIndex);
+  };
+
+  // Update total pages when products change
+  useEffect(() => {
+    const newTotalPages = Math.ceil(products.length / ITEMS_PER_PAGE);
+    console.log('Products length:', products.length);
+    console.log('Total pages:', newTotalPages);
+    setTotalPages(newTotalPages);
+    // Reset to first page when products change
+    setCurrentPage(1);
+  }, [products]);
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   return (
     <>
       <ModalImage data={modalData} handler={modalHandler} />
@@ -288,7 +328,6 @@ const Inventory = () => {
                             <Caret className={sort.keyToSort === header ? sort.direction === 'asc' ? 'rotate-0' : 'rotate-180' : 'rotate-180'}/>
                           )}
                         </div>
-                        
                       </TableCol>
                     ))}
                     <TableCol text='IMAGE' key='IMAGE'/>
@@ -298,7 +337,7 @@ const Inventory = () => {
                 </thead>
                 <tbody className='font-Josefin align-middle'>
                   {products.length > 0 ? (
-                    getSortedArray(products).map(item => (
+                    getSortedArray(getPaginatedProducts(products)).map(item => (
                       <TableRow key={item.sku}>            
                         <TableCol text={item.sku} key={`sku-${item.sku}`}/>
                         <TableCol text={item.name} key={`name-${item.sku}`}/>
@@ -339,6 +378,47 @@ const Inventory = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center mt-6 gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 rounded-md ${
+                    currentPage === 1
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : 'bg-secondaryBlue text-white hover:bg-blue-700'
+                  }`}
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-4 py-2 rounded-md ${
+                      currentPage === page
+                        ? 'bg-secondaryBlue text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-4 py-2 rounded-md ${
+                    currentPage === totalPages
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : 'bg-secondaryBlue text-white hover:bg-blue-700'
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </section>
         )}
       </div>

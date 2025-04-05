@@ -1,0 +1,18 @@
+add provider. 
+cambiar el color o enfasis en agregar producto y editar producto. 
+cuantos productos hay en Colombia
+cuantos tapetes tengo
+cuantos forros tengo
+cantidades por categoria de producto. 
+yandistore
+
+filtrar por ubicacion. 
+ordernar por fecha de creacion. 
+tiempo de producto en inventario. 
+multiple images per product.
+resolver bug de por que agregar mas productos. 
+
+peso a dolares.
+
+si en la misma edicion agrego un producto nuevo que pasa?
+el proceso de edicion ha sido completado mensaje.

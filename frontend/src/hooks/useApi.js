@@ -18,13 +18,13 @@ export const useApi = () => {
    * @returns {Promise<any>} Response data
    */
   const fetchData = useCallback(async (endpoint, options = {}) => {
-
     const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
     // Ensure endpoint starts with a slash
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   
     const url = `${baseUrl}${normalizedEndpoint}`;
-    console.log(`API Request: ${options.method || 'GET'} ${url}`);
+    console.log(`API Request URL: ${url}`);
+    console.log(`API Request Method: ${options.method || 'GET'}`);
     
     try {
       setLoading(true);
@@ -78,7 +78,9 @@ export const useApi = () => {
         throw new Error(errorDetail);
       }
       
-      return await response.json();
+      const data = await response.json();
+      console.log('API Response Data:', data);
+      return data;
     } catch (err) {
       setError(err.message);
       throw err;
@@ -91,8 +93,25 @@ export const useApi = () => {
    * Get all products
    * @returns {Promise<Array>} Products array
    */
-  const getProducts = useCallback(() => {
-    return fetchData('/products/');
+  const getProducts = useCallback(async () => {
+    try {
+      const response = await fetchData('/products/');
+      console.log('API Response:', response);
+      if (Array.isArray(response)) {
+        console.log('Number of products from API:', response.length);
+        return response;
+      } else if (response && response.results) {
+        // Handle paginated response
+        console.log('Number of products from paginated API:', response.results.length);
+        return response.results;
+      } else {
+        console.error('Unexpected API response format:', response);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error in getProducts:', error);
+      throw error;
+    }
   }, [fetchData]);
 
   /**
