@@ -95,19 +95,30 @@ export const useApi = () => {
    */
   const getProducts = useCallback(async () => {
     try {
-      const response = await fetchData('/products/');
-      console.log('API Response:', response);
-      if (Array.isArray(response)) {
-        console.log('Number of products from API:', response.length);
-        return response;
-      } else if (response && response.results) {
-        // Handle paginated response
-        console.log('Number of products from paginated API:', response.results.length);
-        return response.results;
-      } else {
-        console.error('Unexpected API response format:', response);
-        return [];
+      let allProducts = [];
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await fetchData(`/products/?page=${page}&limit=100`);
+        console.log(`Fetching page ${page} of products`);
+        
+        if (Array.isArray(response)) {
+          allProducts = [...allProducts, ...response];
+          hasMore = false; // If it's an array, we got all products
+        } else if (response && response.results) {
+          // Handle paginated response
+          allProducts = [...allProducts, ...response.results];
+          hasMore = response.next !== null; // Check if there's a next page
+          page++;
+        } else {
+          console.error('Unexpected API response format:', response);
+          break;
+        }
       }
+
+      console.log('Total products fetched:', allProducts.length);
+      return allProducts;
     } catch (error) {
       console.error('Error in getProducts:', error);
       throw error;
