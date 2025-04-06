@@ -30,6 +30,7 @@ const Inventory = () => {
   const [allProducts, setAllProducts] = useState([]); // Store all products to use for filtering
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedLocation, setSelectedLocation] = useState('all');
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
   const loading = apiLoading;
   const [sort, setSort] = useState({ keyToSort: 'SKU', direction: 'asc' })
@@ -49,6 +50,12 @@ const Inventory = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  const locations = [
+    { value: 'all', label: 'All Locations' },
+    { value: 'Colombia', label: 'Colombia' },
+    { value: 'USA', label: 'USA' }
+  ];
 
   // Handle opening/closing the image modal
   const modalHandler = (productId, productName) => {
@@ -140,19 +147,37 @@ const Inventory = () => {
     loadData();
   }, [getProducts, getCategories]);
 
-  // Filter products when category changes
+  // Filter products when category or location changes
   const handleCategoryChange = (e) => {
     const categoryId = e.target.value;
     setSelectedCategory(categoryId);
-    
-    if (categoryId === 'all') {
-      setProducts(allProducts);
-    } else {
-      const filteredProducts = allProducts.filter(product => 
+    filterProducts(categoryId, selectedLocation);
+  };
+
+  const handleLocationChange = (e) => {
+    const location = e.target.value;
+    setSelectedLocation(location);
+    filterProducts(selectedCategory, location);
+  };
+
+  const filterProducts = (categoryId, location) => {
+    let filteredProducts = allProducts;
+
+    // Apply category filter
+    if (categoryId !== 'all') {
+      filteredProducts = filteredProducts.filter(product => 
         product.category_id.toString() === categoryId
       );
-      setProducts(filteredProducts);
     }
+
+    // Apply location filter
+    if (location !== 'all') {
+      filteredProducts = filteredProducts.filter(product => 
+        product.location === location
+      );
+    }
+
+    setProducts(filteredProducts);
   };
 
   // Show delete confirmation dialog
@@ -290,16 +315,25 @@ const Inventory = () => {
           </div>
         )}
         
-        {/* Category Filter */}
+        {/* Category and Location Filters */}
         <div className="w-11/12 mx-auto max-w-7xl mb-6">
-          <div className="grid md:grid-cols-3">
-            <div className="col-span-2 max-w-96">
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="max-w-96">
               <InputSelect 
                 name="categoryFilter"
                 title="Category"
                 value={selectedCategory}
                 options={categories}
                 onChange={handleCategoryChange}
+              />
+            </div>
+            <div className="max-w-96">
+              <InputSelect 
+                name="locationFilter"
+                title="Location"
+                value={selectedLocation}
+                options={locations}
+                onChange={handleLocationChange}
               />
             </div>
             <div className="flex justify-end items-center">
