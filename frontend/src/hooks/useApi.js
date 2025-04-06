@@ -97,24 +97,25 @@ export const useApi = () => {
     try {
       let allProducts = [];
       let page = 1;
+      const pageSize = 1000; // Increased page size to reduce API calls
       let hasMore = true;
 
       while (hasMore) {
-        const response = await fetchData(`/products/?page=${page}&limit=100`);
+        const response = await fetchData(`/products/?skip=${(page - 1) * pageSize}&limit=${pageSize}`);
         console.log(`Fetching page ${page} of products`);
+        console.log('API Response:', response);
         
         if (Array.isArray(response)) {
           allProducts = [...allProducts, ...response];
-          hasMore = false; // If it's an array, we got all products
-        } else if (response && response.results) {
-          // Handle paginated response
-          allProducts = [...allProducts, ...response.results];
-          hasMore = response.next !== null; // Check if there's a next page
+          // If we got fewer products than the page size, we've reached the end
+          hasMore = response.length === pageSize;
           page++;
         } else {
           console.error('Unexpected API response format:', response);
           break;
         }
+
+        console.log(`Current total products: ${allProducts.length}`);
       }
 
       console.log('Total products fetched:', allProducts.length);
