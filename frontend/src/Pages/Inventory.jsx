@@ -8,7 +8,7 @@ import InputSelect from '../Components/SelectInput/InputSelect';
 import useApi from '../hooks/useApi';
 import Caret from '../Components/Caret/Caret';
 
-const ITEMS_PER_PAGE = 30;
+const ITEMS_PER_PAGE = 200;
 
 const Inventory = () => {
 
