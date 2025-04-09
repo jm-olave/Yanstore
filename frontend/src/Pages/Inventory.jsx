@@ -44,8 +44,7 @@ const Inventory = () => {
 
   const [deleteConfirmation, setDeleteConfirmation] = useState({
     show: false,
-    productId: null,
-    productName: ''
+    product: {},
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -181,11 +180,10 @@ const Inventory = () => {
   };
 
   // Show delete confirmation dialog
-  const showDeleteConfirmation = (productId, productName) => {
+  const showDeleteConfirmation = (item) => {
     setDeleteConfirmation({
       show: true,
-      productId,
-      productName
+      item
     });
   };
 
@@ -395,7 +393,7 @@ const Inventory = () => {
                         <TableCol key={`delete-${item.sku}`}>
                           <div 
                             className='text-mainRed font-bold cursor-pointer'
-                            onClick={() => showDeleteConfirmation(item.product_id, item.name)}
+                            onClick={() => showDeleteConfirmation(item)}
                           >
                             Delete
                           </div>
