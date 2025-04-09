@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, redirect } from "react-router-dom";
 import InputSelect from "../Components/SelectInput/InputSelect";
 import TextInput from "../Components/TextInput/TextInput";
 import DateInput from "../Components/DateInput/DateInput";
@@ -278,6 +278,8 @@ const ProductForm = () => {
           type: "success",
           message: "Product successfully updated!",
         });
+
+        navigate('/inventory')
       } else {
         // Create new product using the hook
         const formData = new FormData();
@@ -549,15 +551,7 @@ const ProductForm = () => {
         <div className="w-full max-w-xs mx-auto lg:col-start-3 lg:row-start-4 lg:m-0 lg:justify-self-end lg:max-w-md">
           <div className="flex w-full flex-col gap-3 lg:flex-row">
             <SubmitButton
-              text={
-                isSubmitting || apiLoading
-                  ? "SUBMITTING..."
-                  : isEditMode
-                  ? "UPDATE PRODUCT"
-                  : "ADD PRODUCT"
-              }
-              type="submit"
-              disabled={isSubmitting || apiLoading}
+              
             />
 
             <button className="w-full p-3 font-Mulish font-black text-white text-xl border bg-gradient-radial from-secondaryBlue to-mainBlue md:max-w-15 lg:max-w-sm">
