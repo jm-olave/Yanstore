@@ -399,7 +399,7 @@ const Inventory = () => {
                         </TableCol>
                       </TableRow>
                     ))
-                  ) : (
+                  ) : (!loading && 
                     <TableRow>
                       <TableCol colSpan="13" className="text-center py-4">
                         <div>No products found in this category.</div>
