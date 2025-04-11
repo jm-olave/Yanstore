@@ -12,7 +12,7 @@ const FormLayout = ({ title }) => {
         <div className=' w-full h-screen bg-yanstoreLogo bg-opacity-10 bg-center bg-contain bg-no-repeat'>
             <div className='p-3 flex flex-row justify-between mx-auto md:max-w-screen-lg'>
               <div className='flex items-center justify-center'>
-                <img src={BackArrow} alt="navIcon" onClick={() => { navigate(-1) }}/>
+                <img className='cursor-pointer' src={BackArrow} alt="navIcon" onClick={() => { navigate(-1) }}/>
               </div>
               <div className='grid w-11/12 grid-rows-5 grid-cols-5 bg-circle bg-no-repeat bg-right bg-contain max-h-28 md:max-w-screen-md'>
                 <p className='col-span-4 row-start-2 text-secondaryBlue font-Mulish font-black text-2xl md:text-3xl'>{ title }</p>

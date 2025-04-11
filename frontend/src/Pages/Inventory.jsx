@@ -191,8 +191,7 @@ const Inventory = () => {
   const hideDeleteConfirmation = () => {
     setDeleteConfirmation({
       show: false,
-      productId: null,
-      productName: ''
+      item: {}
     });
   };
 
@@ -368,7 +367,7 @@ const Inventory = () => {
                   </TableRow>
                 </thead>
                 <tbody className='font-Josefin align-middle'>
-                  {products.length > 0 ? (
+                  {products.length > 0 && !loading ? (
                     getSortedArray(getPaginatedProducts(products)).map(item => (
                       <TableRow key={item.sku}>            
                         <TableCol text={item.sku} key={`sku-${item.sku}`}/>

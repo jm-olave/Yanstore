@@ -550,9 +550,7 @@ const ProductForm = () => {
 
         <div className="w-full max-w-xs mx-auto lg:col-start-3 lg:row-start-4 lg:m-0 lg:justify-self-end lg:max-w-md">
           <div className="flex w-full flex-col gap-3 lg:flex-row">
-            <SubmitButton
-              
-            />
+            <SubmitButton/>
 
             <button className="w-full p-3 font-Mulish font-black text-white text-xl border bg-gradient-radial from-secondaryBlue to-mainBlue md:max-w-15 lg:max-w-sm">
               <Link to="/inventory">Go to Inventory</Link>

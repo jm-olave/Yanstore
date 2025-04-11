@@ -28,7 +28,7 @@ const ImageInput = ({name, title, onChange}) => {
       </label>
       <input 
         className='w-full file:p-2 file:my-2 file:text-white file:border 
-                  file:bg-gradient-radial file:font-Mulish file:font-black 
+                  file:bg-gradient-radial file:font-Mulish file:font-black file:cursor-pointer
                   from-secondaryBlue to-mainBlue md:w-full md:col-span-2 
                   md:col-start-2'
         name={name} 
