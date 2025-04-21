@@ -44,7 +44,7 @@ const Inventory = () => {
 
   const [deleteConfirmation, setDeleteConfirmation] = useState({
     show: false,
-    product: {},
+    item: {},
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -183,7 +183,7 @@ const Inventory = () => {
   const showDeleteConfirmation = (item) => {
     setDeleteConfirmation({
       show: true,
-      item
+      item: {...item}
     });
   };
 
@@ -198,8 +198,10 @@ const Inventory = () => {
   // Handle product deletion
   const handleDeleteProduct = async () => {
     try {
-      const productId = deleteConfirmation.productId;
+      const productId = deleteConfirmation.item.product_id;
       
+      console.log(deleteConfirmation.item)
+
       if (!productId) return;
       
       const result = await deleteProduct(productId);

@@ -10,6 +10,7 @@ import Inventory from './Pages/Inventory.jsx'
 import ProductForm from './Pages/ProductForm.jsx'
 import ProviderForm from './Pages/ProviderForm.jsx'
 import { validateEnv, logEnvironmentInfo } from './utils/validateEnv.js'
+import Statistics from './Pages/Statistics.jsx'
 
 // Validate environment variables are correctly set
 validateEnv();
@@ -41,6 +42,9 @@ createRoot(document.getElementById('root')).render(
       </Route>
       <Route element={<FormLayout title={'PROVIDERS'}/>}>
         <Route path='add-provider' element={<ProviderForm/>}/>
+      </Route>
+      <Route element={<FormLayout title={'STATISTICS'}/>}>
+        <Route path='statistics' element={<Statistics/>}/>
       </Route>
      </Routes>
     </BrowserRouter>
