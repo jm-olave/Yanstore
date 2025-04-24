@@ -18,7 +18,7 @@ const MainMenu = () => {
             <GradientButton url={'add-category'} text={'ADD CATEGORY'}/>
             {/* <GradientButton url={'add-provider'} text={'ADD PROVIDER'}/> */}
             <GradientButton url={'inventory'} text={'INVENTORY'}/>
-            {/* <GradientButton url={'Statistics'} text={'STATISTICS'}/> */}
+            <GradientButton url={'statistics'} text={'STATISTICS'}/>
           </div>
         </section>
       </div>

@@ -335,7 +335,13 @@ const Inventory = () => {
                 onChange={handleLocationChange}
               />
             </div>
-            <div className="flex justify-end items-center">
+            <div className="flex justify-end items-center gap-4">
+              <Link 
+                to="/statistics" 
+                className="bg-secondaryBlue text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                View Statistics
+              </Link>
               <div className="text-secondaryBlue font-semibold">
                 {products.length} products found
               </div>
