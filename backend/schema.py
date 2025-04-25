@@ -58,10 +58,10 @@ class InventoryCreate(BaseModel):
 class PricePointBase(BaseModel):
     """Base schema for price point data"""
     product_id: int
-    base_cost: Decimal = Field(..., ge=0)
-    selling_price: Decimal = Field(..., ge=0)
+    base_cost: Decimal = Field(..., ge=0)  # Changed from gt=0 to ge=0
+    selling_price: Decimal = Field(..., gt=0)  # Keep this greater than 0
     market_price: Optional[Decimal] = Field(None, ge=0)
-    shipment_cost: Decimal = Field(0.00, ge=0)
+    shipment_cost: Decimal = Field(0.00, ge=0)  # Already correct
     currency: str = Field(..., pattern='^[A-Z]{3}$')
     effective_from: Optional[datetime] = None
 

@@ -364,7 +364,7 @@ def update_product(
         raise HTTPException(status_code=400, detail="Invalid update data")
 
 @app.get("/products/{product_id}/image", response_class=Response)
-def get_product_image(
+async def get_product_image(
     product_id: int,
     db: Session = Depends(get_db)
 ):
@@ -383,15 +383,22 @@ def get_product_image(
     
     # If no image is found, return a 404
     if not product_image:
-        raise HTTPException(status_code=404, detail="No image found for this product")
+        raise HTTPException(
+            status_code=404, 
+            detail="No image found for this product"
+        )
     
     # Determine the content type based on image_type
     content_type = "image/jpeg" if product_image.image_type == "jpg" else "image/png"
     
-    # Return the image as a streaming response
-    return StreamingResponse(
-        BytesIO(product_image.image_data),
-        media_type=content_type
+    # Return the image with proper headers
+    return Response(
+        content=product_image.image_data,
+        media_type=content_type,
+        headers={
+            "Cache-Control": "public, max-age=3600",
+            "Content-Disposition": f"inline; filename=product_{product_id}.{product_image.image_type}"
+        }
     )
 
 @app.delete("/products/{product_id}", response_model=dict)

@@ -1,6 +1,6 @@
 import React from 'react'
 
-const NumberInput = ({name, form, title, value, onChange}) => {
+const NumberInput = ({name, form, title, value, onChange, min = "0"}) => {
   return (
     <div className='grid md:grid-cols-3 items-center'>
       <label className='text-secondaryBlue font-Mulish font-black text-2xl ' htmlFor={form}>{title}</label>
@@ -9,7 +9,7 @@ const NumberInput = ({name, form, title, value, onChange}) => {
             type='number'
             id={name} 
             form={form}
-            min="0.01" 
+            min={min}
             step="0.01"
             onChange={onChange}
             value={value}

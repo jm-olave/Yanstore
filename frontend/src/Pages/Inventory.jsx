@@ -59,15 +59,18 @@ const Inventory = () => {
   // Handle opening/closing the image modal
   const modalHandler = (productId, productName) => {
     if (modalData.open === false) {
-      // When opening the modal, set the product ID and name
+      // Ensure proper URL construction by removing any potential double slashes
+      const baseUrl = import.meta.env.VITE_API_URL.endsWith('/')
+        ? import.meta.env.VITE_API_URL.slice(0, -1)
+        : import.meta.env.VITE_API_URL;
+      
       setModalData({
         open: true,
-        img: `${import.meta.env.VITE_API_URL}/products/${productId}/image`,
+        img: `${baseUrl}/products/${productId}/image`,
         caption: productName,
         productId: productId
       });
     } else {
-      // When closing the modal
       setModalData({
         open: false,
         img: '',
@@ -336,15 +339,15 @@ const Inventory = () => {
               />
             </div>
             <div className="flex justify-end items-center gap-4">
-              <Link 
-                to="/statistics" 
-                className="bg-secondaryBlue text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                View Statistics
-              </Link>
               <div className="text-secondaryBlue font-semibold">
                 {products.length} products found
               </div>
+              <Link 
+                to="/statistics" 
+                className="bg-secondaryBlue text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              >
+                View Statistics
+              </Link>
             </div>
           </div>
         </div>
