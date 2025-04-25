@@ -10,12 +10,15 @@ class CategoryBase(BaseModel):
     category_name: str = Field(..., min_length=1, max_length=50)
     parent_category_id: Optional[int] = None
 
+# First, let's define a constant for the condition pattern
+VALID_CONDITIONS = "^(Mint|Near Mint|Excellent|Good|Lightly Played|Played|Poor|New|Used|Damaged)$"
+
 class ProductBase(BaseModel):
     """Base schema for product data that's common to all operations"""
     name: str = Field(..., min_length=1, max_length=200)
     sku: str = Field(..., min_length=3, max_length=50)
     description: Optional[str] = None
-    condition: str = Field(..., pattern='^(Mint|Near Mint|Excelent|Good|Lightly Played|Played|Poor)$')
+    condition: str = Field(..., pattern=VALID_CONDITIONS)
     location: Optional[str] = Field(None, max_length=100)
     purchase_date: Union[str, date]
     obtained_method: str = Field(..., min_length=1, max_length=50)
@@ -133,30 +136,6 @@ class CategoryResponse(CategoryBase):
     class Config:
         form_attributes = True
 
-class ProductResponse(ProductBase):
-    """Schema for product responses including all related data"""
-    product_id: int
-    name: str
-    sku: str
-    category_id: int
-    description: Optional[str] = None
-    condition: str
-    edition: Optional[str] = None
-    rarity: Optional[str] = None
-    set_name: Optional[str] = None
-    set_code: Optional[str] = None
-    language: Optional[str] = None
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-    # Optional nested responses
-    category: Optional[CategoryResponse] = None
-    current_price: Optional[float] = None
-    available_quantity: Optional[int] = None
-
-    class Config:
-        form_attributes = True
-
 class InventoryResponse(BaseModel):
     """Schema for inventory responses"""
     inventory_id: int
@@ -165,12 +144,28 @@ class InventoryResponse(BaseModel):
     available_quantity: int
     reserved_quantity: int
     reorder_point: int
-    last_restock_date: Optional[datetime]
-    created_at: datetime
-    updated_at: datetime
 
     class Config:
-        form_attributes = True
+        orm_mode = True
+
+class ProductResponse(ProductBase):
+    """Schema for product responses including rentability metrics"""
+    product_id: int
+    category_id: Optional[int]
+    condition: str = Field(..., pattern=VALID_CONDITIONS)
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+    rentability_percentage: float = 0
+    average_profit: float = 0
+    total_revenue: float = 0
+    total_cost: float = 0
+    total_profit: float = 0
+    sales_count: int = 0
+    inventory: Optional[InventoryResponse] = None
+
+    class Config:
+        orm_mode = True
 
 class PriceHistoryResponse(BaseModel):
     """Schema for price history responses"""

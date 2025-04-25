@@ -151,6 +151,11 @@ def delete_category(
 
 
 # Product endpoints
+VALID_CONDITIONS = [
+    "Mint", "Near Mint", "Excellent", "Good", 
+    "Lightly Played", "Played", "Poor", "New", "Used", "Damaged"
+]
+
 @app.post("/products/", response_model=schema.ProductResponse)
 async def create_product(
     name: str = Form(...),
@@ -213,11 +218,10 @@ async def create_product(
         # 3. Combine the category prefix with timestamp to create the SKU
         sku = f"{category_prefix}{timestamp}"
         # Validate the condition value explicitly
-        valid_conditions = ["Mint", "Near Mint", "Excellent", "Good", "Lightly Played", "Played", "Poor", "New", "Used", "Damaged"]
-        if condition not in valid_conditions:
+        if condition not in VALID_CONDITIONS:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid condition. Must be one of: {', '.join(valid_conditions)}"
+                detail=f"Invalid condition. Must be one of: {', '.join(VALID_CONDITIONS)}"
             )
         # Validate image type if provided
         if image:
@@ -305,25 +309,59 @@ async def create_product(
         )
 
 @app.get("/products/", response_model=List[schema.ProductResponse])
-def list_products(
+def get_products(
     skip: int = 0,
     limit: int = 100,
+    db: Session = Depends(get_db),
     category_id: Optional[int] = None,
-    is_active: bool = True,
-    db: Session = Depends(get_db)
+    location: Optional[str] = None
 ):
-    """
-    List products with optional filtering
-    """
-    query = db.query(models.Product)
-    
-    if category_id:
-        query = query.filter(models.Product.category_id == category_id)
-    if is_active is not None:
-        query = query.filter(models.Product.is_active == is_active)
-    
-    products = query.offset(skip).limit(limit).all()
-    return products
+    """Get all products with optional filtering"""
+    try:
+        # Start with a query that includes a join with inventory
+        query = db.query(models.Product).outerjoin(models.Inventory)
+
+        # Apply filters if provided
+        if category_id:
+            query = query.filter(models.Product.category_id == category_id)
+        if location:
+            query = query.filter(models.Product.location == location)
+
+        # Get all products
+        products = query.all()
+
+        # Create default inventory for products without inventory
+        for product in products:
+            if not product.inventory:
+                print(f"Creating inventory for product {product.product_id}")
+                inventory = models.Inventory(
+                    product_id=product.product_id,
+                    quantity=1,
+                    available_quantity=1,
+                    reserved_quantity=0,
+                    reorder_point=0
+                )
+                db.add(inventory)
+                try:
+                    db.commit()
+                    db.refresh(product)
+                except Exception as e:
+                    print(f"Error creating inventory: {e}")
+                    db.rollback()
+                    raise
+
+        # Refresh the products query to include new inventory
+        products = query.all()
+        
+        # Debug log
+        for product in products:
+            print(f"Product {product.product_id} inventory: {product.inventory}")
+
+        return products
+
+    except Exception as e:
+        print(f"Error in get_products: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/products/{product_id}", response_model=schema.ProductResponse)
 def get_product(
@@ -753,6 +791,20 @@ def update_financial_metrics(db: Session, sale: schema.SaleCreate):
         
     db.commit()
 
+@app.get("/products/with-rentability", response_model=List[schema.ProductResponse])
+def get_products_with_rentability(db: Session = Depends(get_db)):
+    """Get all products with their rentability metrics"""
+    products = db.query(models.Product).all()
+    
+    response_products = []
+    for product in products:
+        product_dict = product.__dict__
+        rentability_metrics = product.calculate_rentability(db)
+        product_dict.update(rentability_metrics)
+        response_products.append(product_dict)
+    
+    return response_products
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--reset-db", action="store_true", help="Reset the database")
@@ -790,3 +842,67 @@ async def get_exchange_rates(base_currency: str = "USD"):
         logger.error(f"Error fetching exchange rates: {str(e)}")
         # Fallback to approximate values
         return {"rates": {"COP": 4000, "EUR": 0.92, "GBP": 0.78}}
+
+@app.post("/products/{product_id}/sell", response_model=schema.SaleResponse)
+def sell_product(
+    product_id: int,
+    sale: schema.SaleCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Process a product sale:
+    1. Create sale record
+    2. Update inventory
+    3. Create inventory transaction
+    4. Update financial metrics
+    """
+    try:
+        # Get product and inventory
+        product = db.query(models.Product).filter(models.Product.product_id == product_id).first()
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+            
+        inventory = (db.query(models.Inventory)
+            .filter(models.Inventory.product_id == product_id)
+            .first())
+            
+        # Create sale record
+        db_sale = models.Sale(
+            product_id=product_id,
+            sale_price=sale.sale_price,
+            sale_date=sale.sale_date,
+            payment_method=sale.payment_method,
+            notes=sale.notes
+        )
+        db.add(db_sale)
+        db.flush()
+        
+        # Update inventory
+        if inventory:
+            if inventory.available_quantity < 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Product out of stock"
+                )
+            inventory.available_quantity -= 1
+            
+            # Create inventory transaction
+            transaction = models.InventoryTransaction(
+                inventory_id=inventory.inventory_id,
+                transaction_type="sale",
+                quantity=-1,
+                reference_id=str(db_sale.sale_id),
+                notes=f"Sale registered on {sale.sale_date}",
+                created_by="system"
+            )
+            db.add(transaction)
+
+        # Update financial metrics
+        update_financial_metrics(db, sale)
+        
+        db.commit()
+        db.refresh(db_sale)
+        return db_sale
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid sale data")

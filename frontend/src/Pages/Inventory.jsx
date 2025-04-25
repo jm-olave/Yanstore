@@ -19,9 +19,10 @@ const Inventory = () => {
     'CATEGORY',
     'BASE COST',
     'SHIPMENT COST',
+    'RENTABILITY',
     'OBT METHOD',
     'LOCATION',
-    'DESCRIPTION',
+    'DESCRIPTION'
   ]
 
   const { loading: apiLoading, error: apiError, getProducts, getCategories, deleteProduct } = useApi();
@@ -56,6 +57,59 @@ const Inventory = () => {
     { value: 'USA', label: 'USA' }
   ];
 
+  // Add state for sell modal
+  const [sellModalOpen, setSellModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [saleData, setSaleData] = useState({
+    sale_price: '',
+    payment_method: '',
+    notes: ''
+  });
+
+  // Add the payment method options
+  const PAYMENT_METHODS = [
+    { value: 'Credit', label: 'Credit' },
+    { value: 'Cash', label: 'Cash' },
+    { value: 'USD', label: 'USD' },
+    { value: 'Trade', label: 'Trade' },
+  ];
+
+  // Add sell handler
+  const handleSell = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/products/${selectedProduct.product_id}/sell`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...saleData,
+          sale_date: new Date().toISOString(),
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh product list
+        fetchProducts();
+        setSellModalOpen(false);
+        setSaleData({ sale_price: '', payment_method: '', notes: '' });
+        setSubmitStatus({
+          type: 'success',
+          message: 'Product sold successfully'
+        });
+      } else {
+        const error = await response.json();
+        throw new Error(error.detail);
+      }
+    } catch (error) {
+      setSubmitStatus({
+        type: 'error',
+        message: `Failed to sell product: ${error.message}`
+      });
+      console.error('Error selling product:', error);
+    }
+  };
+
   // Handle opening/closing the image modal
   const modalHandler = (productId, productName) => {
     if (modalData.open === false) {
@@ -80,6 +134,57 @@ const Inventory = () => {
     }
   };
 
+  const fetchProducts = async () => {
+    try {
+      // Get all products
+      const productsData = await getProducts();
+      console.log('Initial products loaded:', productsData.length);
+      
+      // For each product, fetch the current price point
+      const productsWithPricing = await Promise.all(productsData.map(async (product) => {
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/products/${product.product_id}/price-points/?current_only=true&limit=1`);
+          if (response.ok) {
+            const pricePoints = await response.json();
+            if (pricePoints && pricePoints.length > 0) {
+              return {
+                ...product,
+                base_cost: pricePoints[0].base_cost,
+                selling_price: pricePoints[0].selling_price,
+                shipment_cost: pricePoints[0].shipment_cost || 0
+              };
+            }
+          }
+          return {
+            ...product,
+            base_cost: null,
+            selling_price: null,
+            shipment_cost: null
+          };
+        } catch (error) {
+          console.error(`Error fetching price for product ${product.product_id}:`, error);
+          return {
+            ...product,
+            base_cost: null,
+            selling_price: null,
+            shipment_cost: null
+          };
+        }
+      }));
+      
+      console.log('Products with pricing:', productsWithPricing.length);
+      setAllProducts(productsWithPricing);
+      setProducts(productsWithPricing); // Initially show all products
+      setSubmitStatus({ type: '', message: '' });
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setSubmitStatus({
+        type: 'error',
+        message: `Failed to load data: ${error.message}`
+      });
+    }
+  };
+
   // Load products and categories on component mount
   useEffect(() => {
     const loadData = async () => {
@@ -95,48 +200,8 @@ const Inventory = () => {
         ];
         setCategories(mappedCategories);
         
-        // Get all products
-        const productsData = await getProducts();
-        console.log('Initial products loaded:', productsData.length);
-        
-        // For each product, fetch the current price point
-        const productsWithPricing = await Promise.all(productsData.map(async (product) => {
-          try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/products/${product.product_id}/price-points/?current_only=true&limit=1`);
-            if (response.ok) {
-              const pricePoints = await response.json();
-              if (pricePoints && pricePoints.length > 0) {
-                return {
-                  ...product,
-                  base_cost: pricePoints[0].base_cost,
-                  selling_price: pricePoints[0].selling_price,
-                  shipment_cost: pricePoints[0].shipment_cost || 0
-                };
-              }
-            }
-            // If we can't get price point, return the product without pricing
-            return {
-              ...product,
-              base_cost: null,
-              selling_price: null,
-              shipment_cost: null
-            };
-          } catch (error) {
-            console.error(`Error fetching price for product ${product.product_id}:`, error);
-            // Return the product without pricing instead of filtering it out
-            return {
-              ...product,
-              base_cost: null,
-              selling_price: null,
-              shipment_cost: null
-            };
-          }
-        }));
-        
-        console.log('Products with pricing:', productsWithPricing.length);
-        setAllProducts(productsWithPricing);
-        setProducts(productsWithPricing); // Initially show all products
-        setSubmitStatus({ type: '', message: '' });
+        // Fetch products using the new function
+        await fetchProducts();
       } catch (error) {
         console.error('Error loading data:', error);
         setSubmitStatus({
@@ -310,6 +375,70 @@ const Inventory = () => {
         />
       )}
       
+      {/* Sell Modal */}
+      {sellModalOpen && selectedProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Sell {selectedProduct.name}</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Sale Price</label>
+                <input
+                  type="number"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  value={saleData.sale_price}
+                  onChange={(e) => setSaleData({...saleData, sale_price: e.target.value})}
+                  placeholder="Enter sale price"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Payment Method</label>
+                <select
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  value={saleData.payment_method}
+                  onChange={(e) => setSaleData({...saleData, payment_method: e.target.value})}
+                >
+                  <option value="">Select payment method</option>
+                  {PAYMENT_METHODS.map(method => (
+                    <option key={method.value} value={method.value}>
+                      {method.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Notes</label>
+                <textarea
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  value={saleData.notes}
+                  onChange={(e) => setSaleData({...saleData, notes: e.target.value})}
+                  placeholder="Add sale notes"
+                  rows="3"
+                />
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => setSellModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSell}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Confirm Sale
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full overflow-x-hidden">
         {submitStatus.message && (
           <div className={`mb-4 p-4 rounded-md ${submitStatus.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
@@ -375,6 +504,7 @@ const Inventory = () => {
                     <TableCol text='IMAGE' key='IMAGE'/>
                     <TableCol text='EDIT' key='EDIT'/>
                     <TableCol text='DELETE' key='DELETE'/>
+                    <TableCol text='SELL' key='SELL'/>
                   </TableRow>
                 </thead>
                 <tbody className='font-Josefin align-middle'>
@@ -387,6 +517,14 @@ const Inventory = () => {
                         <TableCol text={item.category?.category_name || 'Unknown'} key={`cat-${item.sku}`}/>
                         <TableCol text={item.base_cost ? `$${Number(item.base_cost).toFixed(2)}` : 'N/A'} key={`cost-${item.sku}`}/>
                         <TableCol text={formatCurrency(item.shipment_cost)} key={`shipment-cost-${item.sku}`}/>
+                        <TableCol 
+                          text={
+                            <div className={`font-bold ${item.rentability_percentage >= 20 ? 'text-green-600' : item.rentability_percentage >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
+                              {`${item.rentability_percentage}%`}
+                            </div>
+                          } 
+                          key={`rentability-${item.sku}`}
+                        />
                         <TableCol text={item.obtained_method} key={`ob_me-${item.sku}`}/>
                         <TableCol text={item.location || "Colombia"} key={`location-${item.sku}`}/>
                         <TableCol text={item.description} key={`desc-${item.sku}`}/>
@@ -407,6 +545,23 @@ const Inventory = () => {
                           >
                             Delete
                           </div>
+                        </TableCol>
+                        <TableCol>
+                          <button
+                            onClick={() => {
+                              console.log('Product inventory:', item.inventory);
+                              setSelectedProduct(item);
+                              setSellModalOpen(true);
+                            }}
+                            disabled={!item.inventory || item.inventory.available_quantity === 0}
+                            className={`px-4 py-2 rounded ${
+                              (!item.inventory || item.inventory.available_quantity === 0)
+                                ? 'bg-gray-300 text-gray-600'
+                                : 'bg-green-500 hover:bg-green-600 text-white'
+                            }`}
+                          >
+                            {(!item.inventory || item.inventory.available_quantity === 0) ? 'Out of Stock' : 'Sell'}
+                          </button>
                         </TableCol>
                       </TableRow>
                     ))

@@ -34,11 +34,63 @@ class Product(Base):
     # Relationships
     category = relationship("ProductCategory", back_populates="products")
     images = relationship("ProductImage", back_populates="product")
-    inventory = relationship("Inventory", back_populates="product")
+    inventory = relationship("Inventory", back_populates="product", uselist=False, lazy='joined')
     price_points = relationship("PricePoint", back_populates="product")
     price_history = relationship("PriceHistory", back_populates="product")
     supplier_products = relationship("SupplierProduct", back_populates="product")
     order_items = relationship("OrderItem", back_populates="product")
+
+    def calculate_rentability(self, db_session) -> dict:
+        """Calculate various rentability metrics for the product"""
+        # Get latest price point
+        latest_price = (db_session.query(PricePoint)
+            .filter(PricePoint.product_id == self.product_id)
+            .order_by(PricePoint.effective_from.desc())
+            .first())
+            
+        # Get all sales for this product
+        sales = (db_session.query(Sale)
+            .filter(Sale.product_id == self.product_id)
+            .all())
+            
+        if not latest_price:
+            return {
+                "rentability_percentage": 0,
+                "average_profit": 0,
+                "total_revenue": 0,
+                "total_cost": 0,
+                "total_profit": 0,
+                "sales_count": 0
+            }
+
+        # Calculate metrics
+        total_revenue = sum(float(sale.sale_price) for sale in sales)
+        total_cost = float(latest_price.base_cost + latest_price.shipment_cost)
+        sales_count = len(sales)
+        
+        # Avoid division by zero
+        if sales_count == 0 or total_cost == 0:
+            return {
+                "rentability_percentage": 0,
+                "average_profit": 0,
+                "total_revenue": total_revenue,
+                "total_cost": total_cost,
+                "total_profit": 0,
+                "sales_count": 0
+            }
+
+        total_profit = total_revenue - (total_cost * sales_count)
+        average_profit = total_profit / sales_count
+        rentability_percentage = (total_profit / (total_cost * sales_count)) * 100
+
+        return {
+            "rentability_percentage": round(rentability_percentage, 2),
+            "average_profit": round(average_profit, 2),
+            "total_revenue": round(total_revenue, 2),
+            "total_cost": round(total_cost, 2),
+            "total_profit": round(total_profit, 2),
+            "sales_count": sales_count
+        }
 
 class ProductImage(Base):
     """

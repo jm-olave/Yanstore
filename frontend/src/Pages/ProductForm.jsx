@@ -35,6 +35,9 @@ const cardConditions = [
   { value: "Lightly Played", label: "Lightly Played" },
   { value: "Played", label: "Played" },
   { value: "Poor", label: "Poor" },
+  { value: "New", label: "New" },
+  { value: "Used", label: "Used" },
+  { value: "Damaged", label: "Damaged" }
 ];
 
 const locations = [
