@@ -5,7 +5,7 @@ const TextInput = ({name, form, title, value, placeholder = '', onChange, readon
 
   return (
     readonly ? (
-      <div className='grid my-3 p-3 md:grid-cols-3 items-center'>
+      <div className='grid my-3 p-3 items-center'>
         <label 
           className='text-secondaryBlue font-Mulish font-black text-2xl'
           htmlFor={form}
@@ -13,7 +13,7 @@ const TextInput = ({name, form, title, value, placeholder = '', onChange, readon
           {title}
         </label>
         <input 
-          className='w-full p-1 text-black font-Mulish font-semibold text-xl border-4 border-secondaryBlue md:w-full md:col-span-2 md:col-start-2'
+          className='w-full p-1 text-black font-Mulish font-semibold text-xl border-4 border-secondaryBlue'
           name={name}
           type='text'
           id={name}
@@ -25,7 +25,7 @@ const TextInput = ({name, form, title, value, placeholder = '', onChange, readon
         />
       </div>
     ) : (
-      <div className='grid my-3 p-3 md:grid-cols-3 items-center'>
+      <div className='grid my-3 p-3 items-center'>
         <label 
           className='text-secondaryBlue font-Mulish font-black text-2xl'
           htmlFor={form}
@@ -33,7 +33,7 @@ const TextInput = ({name, form, title, value, placeholder = '', onChange, readon
           {title}
         </label>
         <input 
-          className='w-full p-1 text-black font-Mulish font-semibold text-xl border-4 border-secondaryBlue md:w-full md:col-span-2 md:col-start-2'
+          className='w-full p-1 text-black font-Mulish font-semibold text-xl border-4 border-secondaryBlue'
           name={name}
           type='text'
           id={name}

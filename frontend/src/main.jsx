@@ -11,6 +11,7 @@ import ProductForm from './Pages/ProductForm.jsx'
 import ProviderForm from './Pages/ProviderForm.jsx'
 import { validateEnv, logEnvironmentInfo } from './utils/validateEnv.js'
 import Statistics from './Pages/Statistics.jsx'
+import PageLayout from './Layouts/PageLayout.jsx'
 
 // Validate environment variables are correctly set
 validateEnv();
@@ -24,27 +25,29 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
      <Routes>
-      <Route index element={<MainMenu/>}/>
-      <Route element={<FormLayout title={'ADD PRODUCT'}/>}>
-        <Route path='add-product' element={<ProductForm/>}/>
-      </Route>
-      <Route element={<FormLayout title={'EDIT PRODUCT'}/>}>
-        <Route path='edit-product/:productId' element={<ProductForm/>}/>
-      </Route>
-      <Route element={<FormLayout title={'ADD CATEGORY'}/>}>
-        <Route path='add-category' element={<CategoryForm/>}/>
-      </Route>
-      <Route element={<FormLayout title={'INVENTORY'}/>}>
-        <Route path='inventory' element={<Inventory/>}/>
-      </Route>
-      <Route element={<FormLayout title={'FINANCIAL INFORMATION'}/>}>
-        <Route path='add-financial-information/:productId' element={<FinancialInformationForm/>}/>
-      </Route>
-      <Route element={<FormLayout title={'PROVIDERS'}/>}>
-        <Route path='add-provider' element={<ProviderForm/>}/>
-      </Route>
-      <Route element={<FormLayout title={'STATISTICS'}/>}>
-        <Route path='statistics' element={<Statistics/>}/>
+      <Route element={<PageLayout/>}>
+        <Route index element={<MainMenu/>}/>
+        <Route element={<FormLayout title={'ADD PRODUCT'}/>}>
+          <Route path='add-product' element={<ProductForm/>}/>
+        </Route>
+        <Route element={<FormLayout title={'EDIT PRODUCT'}/>}>
+          <Route path='edit-product/:productId' element={<ProductForm/>}/>
+        </Route>
+        <Route element={<FormLayout title={'ADD CATEGORY'}/>}>
+          <Route path='add-category' element={<CategoryForm/>}/>
+        </Route>
+        <Route element={<FormLayout title={'INVENTORY'}/>}>
+          <Route path='inventory' element={<Inventory/>}/>
+        </Route>
+        <Route element={<FormLayout title={'FINANCIAL INFORMATION'}/>}>
+          <Route path='add-financial-information/:productId' element={<FinancialInformationForm/>}/>
+        </Route>
+        <Route element={<FormLayout title={'PROVIDERS'}/>}>
+          <Route path='add-provider' element={<ProviderForm/>}/>
+        </Route>
+        <Route element={<FormLayout title={'STATISTICS'}/>}>
+          <Route path='statistics' element={<Statistics/>}/>
+        </Route>
       </Route>
      </Routes>
     </BrowserRouter>

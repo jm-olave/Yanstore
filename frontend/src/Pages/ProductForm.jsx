@@ -402,7 +402,7 @@ const ProductForm = () => {
   }, [getCategories]);
 
   return (
-    <div className="w-11/12 pb-11 mx-auto lg:max-w-7xl">
+    <div className="w-11/12 mx-auto lg:max-w-7xl">
       {submitStatus.message && (
         <div
           className={`mb-4 p-4 rounded-md ${
@@ -416,7 +416,7 @@ const ProductForm = () => {
       )}
 
       <form className="lg:grid lg:grid-cols-3 lg:gap-4" onSubmit={handleSubmit}>
-        <div className="flex flex-col justify-evenly">
+        <div className="flex flex-col">
           <TextInput
             name="name"
             title="Name"
@@ -426,6 +426,33 @@ const ProductForm = () => {
             required
           />
           <InputSelect
+            name="location"
+            title="Location"
+            value={form.location}
+            options={locations}
+            onChange={handleFormChange}
+            required
+          />
+          <div className="flex-col">
+              <NumberInput
+                name="base_cost"
+                title="Base Cost"
+                value={form.base_cost}
+                onChange={handleFormChange}
+                required
+              />
+              {form.base_cost && !isNaN(parseFloat(form.base_cost)) && (
+                <div className="text-center font-Josefin font-semibold text-sm text-secondaryBlue">
+                  {exchangeRateLoading
+                    ? "Loading..."
+                    : convertToCOP(form.base_cost)}
+                </div>
+              )}
+            </div>
+        </div>
+
+        <div className="flex flex-col">
+          <InputSelect
             name="category_id"
             title="Categories"
             value={form.category_id}
@@ -433,6 +460,31 @@ const ProductForm = () => {
             onChange={handleFormChange}
             required
           />
+          <InputSelect
+            name="obtained_method"
+            title="Obtaining Method"
+            value={form.obtained_method}
+            options={obtainingMethods}
+            onChange={handleFormChange}
+            required
+          />
+
+            <NumberInput
+              name="shipment_cost"
+              title="Shipment Cost"
+              value={form.shipment_cost}
+              onChange={handleFormChange}
+            />
+            {form.shipment_cost && !isNaN(parseFloat(form.shipment_cost)) && (
+              <div className="text-center font-Josefin font-semibold text-sm text-secondaryBlue">
+                {exchangeRateLoading
+                  ? "Loading..."
+                  : convertToCOP(form.shipment_cost)}
+              </div>
+            )}
+        </div>
+
+        <div className="flex flex-col">
           <InputSelect
             name="condition"
             title="Condition"
@@ -442,25 +494,6 @@ const ProductForm = () => {
             required
           />
 
-          <InputSelect
-            name="location"
-            title="Location"
-            value={form.location}
-            options={locations}
-            onChange={handleFormChange}
-            required
-          />
-        </div>
-
-        <div className="flex flex-col">
-          <InputSelect
-            name="obtained_method"
-            title="Obtaining Method"
-            value={form.obtained_method}
-            options={obtainingMethods}
-            onChange={handleFormChange}
-            required
-          />
           <DateInput
             name="purchase_date"
             title="Purchase Date"
@@ -476,37 +509,16 @@ const ProductForm = () => {
             max={today}
             required
           />
-
           <ImageInput
             name="image"
             title="Image"
             onChange={handleFormChange}
           />
         </div>
-        {/* Financial information section */}
-        <div className="lg:col-start-3 mt-4">
-          <h3 className="text-lg font-semibold text-secondaryBlue mb-3">
-            Financial Information (USD)
-          </h3>
-          <div className="lg:grid lg:grid-cols-2 lg:grid-rows-2 lg:gap-4">
-            <div className="mb-4 lg:col-span-2">
-              <NumberInput
-                name="base_cost"
-                title="Base Cost"
-                value={form.base_cost}
-                onChange={handleFormChange}
-                required
-              />
-              {form.base_cost && !isNaN(parseFloat(form.base_cost)) && (
-                <div className="font-Josefin font-semibold text-sm text-secondaryBlue">
-                  {exchangeRateLoading
-                    ? "Loading..."
-                    : convertToCOP(form.base_cost)}
-                </div>
-              )}
-            </div>
 
-            {/* <div className="mb-4">
+        {/* <div className="">
+          <div className="flex items-center">
+            <div className="mb-4">
               <NumberInput
                 name="selling_price"
                 title="Selling Price"
@@ -521,25 +533,9 @@ const ProductForm = () => {
                     : convertToCOP(form.selling_price)}
                 </div>
               )}
-            </div> */}
-
-            <div className="mb-4 lg:row-start-2 lg:col-span-2">
-              <NumberInput
-                name="shipment_cost"
-                title="Shipment Cost"
-                value={form.shipment_cost}
-                onChange={handleFormChange}
-              />
-              {form.shipment_cost && !isNaN(parseFloat(form.shipment_cost)) && (
-                <div className="font-Josefin font-semibold text-sm text-secondaryBlue">
-                  {exchangeRateLoading
-                    ? "Loading..."
-                    : convertToCOP(form.shipment_cost)}
-                </div>
-              )}
             </div>
           </div>
-        </div>
+        </div> */}
 
         <div className="lg:col-span-3">
           <TextAreaInput
@@ -551,14 +547,14 @@ const ProductForm = () => {
           />
         </div>
 
-        <div className="w-full max-w-xs mx-auto lg:col-start-3 lg:row-start-4 lg:m-0 lg:justify-self-end lg:max-w-md">
-          <div className="flex w-full flex-col gap-3 lg:flex-row">
-            <SubmitButton/>
+        <div className="col-start-2">
+          <SubmitButton/>
+        </div>
 
-            <button className="w-full p-3 font-Mulish font-black text-white text-xl border bg-gradient-radial from-secondaryBlue to-mainBlue md:max-w-15 lg:max-w-sm">
+        <div className="col-start-3">
+          <button className="w-full p-3 font-Mulish font-black text-white text-xl border bg-gradient-radial from-secondaryBlue to-mainBlue md:max-w-15 lg:max-w-sm">
               <Link to="/inventory">Go to Inventory</Link>
-            </button>
-          </div>
+          </button>
         </div>
       </form>
     </div>
