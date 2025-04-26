@@ -487,7 +487,7 @@ const Inventory = () => {
           </div>
         ) : (
           <section className='w-11/12 mx-auto max-w-screen-2xl'>
-            <div className='overflow-x-auto relative'>
+            <div className='overflow-x-auto relative h-full'>
               <table className='w-full min-w-[800px]'>
                 <thead className='font-Mulish font-black text-secondaryBlue'>
                   <TableRow>

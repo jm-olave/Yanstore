@@ -84,7 +84,7 @@ const Statistics = () => {
   }, []);
 
   return (
-    <div className="w-11/12 mx-auto max-w-7xl">
+    <div className="w-11/12 mx-auto max-w-7xl h-full">
       {/* Header Section */}
       <div className="mb-8 flex justify-between items-center">
         <h2 className="text-2xl font-bold text-secondaryBlue">Statistics Overview</h2>
@@ -99,13 +99,13 @@ const Statistics = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Total Products Card */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-6 rounded-lg shadow-md m-4">
           <h3 className="text-xl font-semibold text-secondaryBlue mb-4">Total Products</h3>
           <p className="text-4xl font-bold">{stats.total}</p>
         </div>
 
         {/* Location Distribution Card */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-6 rounded-lg shadow-md m-4">
           <h3 className="text-xl font-semibold text-secondaryBlue mb-4">Products by Location</h3>
           <div className="space-y-4">
             {Object.entries(stats.byLocation).map(([location, count]) => (
@@ -118,7 +118,7 @@ const Statistics = () => {
         </div>
 
         {/* Category Distribution Card */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-6 rounded-lg shadow-md m-4">
           <h3 className="text-xl font-semibold text-secondaryBlue mb-4">Products by Category</h3>
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {Object.entries(stats.byCategory).map(([category, count]) => (
@@ -131,7 +131,7 @@ const Statistics = () => {
         </div>
 
         {/* Inventory Age Card */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-6 rounded-lg shadow-md m-4">
           <h3 className="text-xl font-semibold text-secondaryBlue mb-4">Inventory Age</h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
