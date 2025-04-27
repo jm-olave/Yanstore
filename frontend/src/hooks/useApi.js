@@ -239,6 +239,56 @@ export const useApi = () => {
     });
   }, [fetchData]);
 
+  /**
+   * Add a Supplier
+   * @param {object} SupplierData - category ID
+   * @returns {Promise<Object>} Response data
+   */
+  const addSupplier = useCallback((SupplierData) => {
+    return fetchData('/suppliers/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(categoryData)
+    });
+  }, [fetchData]);
+
+  /**
+   * Get all suppliers
+   * @returns {Promise<Array>} Suppliers array
+   */
+  const getSuppliers = useCallback(() => {
+    return fetchData('/suppliers/');
+  }, [fetchData]);
+
+  /**
+   * Delete a category
+   * @param {number} id - category ID
+   * @returns {Promise<Object>} Response data
+   */
+  const deleteSupplier = useCallback((id) => {
+    return fetchData(`/supplier/${id}`, {
+      method: 'DELETE'
+    });
+  }, [fetchData]);
+
+  /**
+   * Update a supplier
+   * @param {number} id - Product ID
+   * @param {Object} data - Update data
+   * @returns {Promise<Object>} Updated product
+   */
+  const updateSupplier = useCallback((id, data) => {
+    return fetchData(`/suppliers/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+  }, [fetchData]);
+
   return {
     loading,
     error,
@@ -252,7 +302,10 @@ export const useApi = () => {
     registerSale,
     createPricePoint,
     createCategory,
-    deleteCategory
+    deleteCategory,
+    addSupplier,
+    getSuppliers,
+
   };
 };
 
