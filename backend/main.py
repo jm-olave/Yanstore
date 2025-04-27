@@ -560,6 +560,53 @@ def update_supplier(
         db.rollback()
         raise HTTPException(status_code=400, detail="Update failed")
 
+@app.delete("/suppliers/{supplier_id}", response_model=dict)
+def delete_supplier(
+    supplier_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a supplier (marks it as inactive rather than removing it)"""
+    db_supplier = db.query(models.Supplier).filter(
+        models.Supplier.supplier_id == supplier_id
+    ).first()
+    
+    if not db_supplier:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    
+    try:
+        # Check if supplier has any active associated products
+        associated_products = db.query(models.SupplierProduct).filter(
+            models.SupplierProduct.supplier_id == supplier_id
+        ).count()
+        
+        if associated_products > 0:
+            # If supplier has associated products, just mark as inactive
+            db_supplier.is_active = False
+            db.commit()
+            return {
+                "success": True,
+                "message": f"Supplier '{db_supplier.name}' has been deactivated due to existing product associations",
+                "supplier_id": supplier_id,
+                "deactivated": True
+            }
+        else:
+            # If no associated products, we can safely delete the supplier
+            db.delete(db_supplier)
+            db.commit()
+            return {
+                "success": True,
+                "message": f"Supplier '{db_supplier.name}' has been deleted",
+                "supplier_id": supplier_id,
+                "deactivated": False
+            }
+            
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while deleting/deactivating the supplier: {str(e)}"
+        )
+
 # pricepoint and financial endpoints 
 @app.post("/price-points/", response_model=schema.PricePointResponse)
 def create_price_point(

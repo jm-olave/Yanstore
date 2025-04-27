@@ -239,6 +239,17 @@ export const useApi = () => {
     });
   }, [fetchData]);
 
+  /**
+   * Delete a supplier
+   * @param {number} id - supplier ID
+   * @returns {Promise<Object>} Response data
+   */
+  const deleteSupplier = useCallback((id) => {
+    return fetchData(`/suppliers/${id}`, {
+      method: 'DELETE'
+    });
+  }, [fetchData]);
+
   return {
     loading,
     error,
@@ -252,7 +263,8 @@ export const useApi = () => {
     registerSale,
     createPricePoint,
     createCategory,
-    deleteCategory
+    deleteCategory,
+    deleteSupplier
   };
 };
 
