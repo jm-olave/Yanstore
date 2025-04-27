@@ -289,12 +289,8 @@ class SupplierCreate(SupplierBase):
 class SupplierUpdate(BaseModel):
     """Schema for updating supplier information"""
     name: Optional[str] = Field(None, max_length=100)
-    debtor_type: Optional[str] = Field(None, pattern='^(regular|preferred|premium)$')
-    contact_person: Optional[str] = Field(None, max_length=100)
     email: Optional[str] = Field(None, max_length=100)
     phone: Optional[str] = Field(None, max_length=20)
-    payment_terms: Optional[str] = Field(None, max_length=100)
-    credit_limit: Optional[float] = Field(None, ge=0)
     is_active: Optional[bool] = None
 
 class SupplierResponse(SupplierBase):
