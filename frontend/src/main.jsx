@@ -8,7 +8,7 @@ import CategoryForm from './Pages/CategoryForm.jsx'
 import FinancialInformationForm from './Pages/FinancialInformationForm.jsx'
 import Inventory from './Pages/Inventory.jsx'
 import ProductForm from './Pages/ProductForm.jsx'
-import ProviderForm from './Pages/ProviderForm.jsx'
+import SupplierForm from './Pages/SupplierForm.jsx'
 import { validateEnv, logEnvironmentInfo } from './utils/validateEnv.js'
 import Statistics from './Pages/Statistics.jsx'
 import PageLayout from './Layouts/PageLayout.jsx'
@@ -33,8 +33,8 @@ createRoot(document.getElementById('root')).render(
         <Route element={<FormLayout title={'EDIT PRODUCT'}/>}>
           <Route path='edit-product/:productId' element={<ProductForm/>}/>
         </Route>
-        <Route element={<FormLayout title={'ADD CATEGORY'}/>}>
-          <Route path='add-category' element={<CategoryForm/>}/>
+        <Route element={<FormLayout title={'CATEGORIES'}/>}>
+          <Route path='categories' element={<CategoryForm/>}/>
         </Route>
         <Route element={<FormLayout title={'INVENTORY'}/>}>
           <Route path='inventory' element={<Inventory/>}/>
@@ -42,8 +42,8 @@ createRoot(document.getElementById('root')).render(
         <Route element={<FormLayout title={'FINANCIAL INFORMATION'}/>}>
           <Route path='add-financial-information/:productId' element={<FinancialInformationForm/>}/>
         </Route>
-        <Route element={<FormLayout title={'PROVIDERS'}/>}>
-          <Route path='add-provider' element={<ProviderForm/>}/>
+        <Route element={<FormLayout title={'SUPPLIERS'}/>}>
+          <Route path='suppliers' element={<SupplierForm/>}/>
         </Route>
         <Route element={<FormLayout title={'STATISTICS'}/>}>
           <Route path='statistics' element={<Statistics/>}/>

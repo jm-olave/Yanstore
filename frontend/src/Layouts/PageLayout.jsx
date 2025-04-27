@@ -19,10 +19,13 @@ const PageLayout = () => {
                             <Link to='add-product'>ADD PRODUCT</Link>
                         </li>
                         <li className='my-5 border-b-2 cursor-pointer'>
-                            <Link to='add-category'>ADD CATEGORY</Link>
+                            <Link to='inventory'>INVENTORY</Link>
                         </li>
                         <li className='my-5 border-b-2 cursor-pointer'>
-                            <Link to='inventory'>INVENTORY</Link>
+                            <Link to='categories'>CATEGORIES</Link>
+                        </li>
+                        <li className='my-5 border-b-2 cursor-pointer'>
+                            <Link to='suppliers'>SUPPLIERS</Link>
                         </li>
                         <li className='my-5 border-b-2 cursor-pointer'>
                             <Link to='statistics'>STATISTICS</Link>
