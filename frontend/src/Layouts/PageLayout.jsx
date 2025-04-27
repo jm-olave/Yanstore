@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import Logo from '../Images/YanstoreLogo.png'
 
 const PageLayout = () => {
@@ -9,7 +9,9 @@ const PageLayout = () => {
         <div className='flex h-[94%]'>
             <section className='h-full bg-mainBlue w-[15%]'>
                 <div className='w-32 mx-auto'>
-                    <img src={Logo} alt="Yanstore Logo" className='object-scale-down'/>
+                    <NavLink to='/' className='w-full'>
+                        <img src={Logo} alt="Yanstore Logo" className='object-scale-down'/>
+                    </NavLink>
                 </div>
                 <nav className='py-5 w-3/4 mx-auto flex flex-col justify-center'>
                     <ul className='text-center text-white font-Mulish font-black text-sm'>
