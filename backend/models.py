@@ -191,18 +191,14 @@ class PriceHistory(Base):
 class Supplier(Base):
     """
     Manages supplier information and contact details.
-    Tracks active status and payment terms.
+    Tracks active status.
     """
     __tablename__ = "suppliers"
 
     supplier_id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
-    debtor_type = Column(String(20), nullable=False)
-    contact_person = Column(String(100))
     email = Column(String(100))
     phone = Column(String(20))
-    payment_terms = Column(String(100))
-    credit_limit = Column(Numeric(10, 2), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
