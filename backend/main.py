@@ -407,37 +407,54 @@ async def get_product_image(
     db: Session = Depends(get_db)
 ):
     """Get the primary image for a product"""
-    # Find the primary image for this product
-    product_image = db.query(models.ProductImage).filter(
-        models.ProductImage.product_id == product_id,
-        models.ProductImage.is_primary == True
-    ).first()
-    
-    # If no primary image found, try to get any image for this product
-    if not product_image:
+    try:
+        # Find the primary image for this product
         product_image = db.query(models.ProductImage).filter(
-            models.ProductImage.product_id == product_id
+            models.ProductImage.product_id == product_id,
+            models.ProductImage.is_primary == True
         ).first()
-    
-    # If no image is found, return a 404
-    if not product_image:
-        raise HTTPException(
-            status_code=404, 
-            detail="No image found for this product"
+        
+        # If no primary image found, try to get any image for this product
+        if not product_image:
+            product_image = db.query(models.ProductImage).filter(
+                models.ProductImage.product_id == product_id
+            ).first()
+        
+        # If no image is found or image data is empty, return a 404
+        if not product_image or not product_image.image_data:
+            raise HTTPException(
+                status_code=404, 
+                detail="No valid image found for this product"
+            )
+        
+        # Validate image data
+        if len(product_image.image_data) == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Image data is empty"
+            )
+        
+        # Determine the content type based on image_type
+        content_type = "image/jpeg" if product_image.image_type == "jpg" else "image/png"
+        
+        # Return the image with proper headers
+        return Response(
+            content=product_image.image_data,
+            media_type=content_type,
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "Access-Control-Allow-Origin": "*",
+                "Content-Disposition": f"inline; filename=product_{product_id}.{product_image.image_type}"
+            }
         )
-    
-    # Determine the content type based on image_type
-    content_type = "image/jpeg" if product_image.image_type == "jpg" else "image/png"
-    
-    # Return the image with proper headers
-    return Response(
-        content=product_image.image_data,
-        media_type=content_type,
-        headers={
-            "Cache-Control": "public, max-age=3600",
-            "Content-Disposition": f"inline; filename=product_{product_id}.{product_image.image_type}"
-        }
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving image for product {product_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error while retrieving image"
+        )
 
 @app.delete("/products/{product_id}", response_model=dict)
 def delete_product(

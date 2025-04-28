@@ -112,16 +112,14 @@ const Inventory = () => {
 
   // Handle opening/closing the image modal
   const modalHandler = (productId, productName) => {
-    if (modalData.open === false) {
-      // Ensure proper URL construction by removing any potential double slashes
-      const baseUrl = import.meta.env.VITE_API_URL.endsWith('/')
-        ? import.meta.env.VITE_API_URL.slice(0, -1)
-        : import.meta.env.VITE_API_URL;
+    if (modalData.open === false && productId) {
+      const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'http://localhost:8000';
+      const imageUrl = `${baseUrl}/products/${productId}/image`;
       
       setModalData({
         open: true,
-        img: `${baseUrl}/products/${productId}/image`,
-        caption: productName,
+        img: imageUrl,
+        caption: productName || 'Product Image',
         productId: productId
       });
     } else {
@@ -515,7 +513,10 @@ const Inventory = () => {
                         <TableCol text={item.sku} key={`sku-${item.sku}`}/>
                         <TableCol text={item.name} key={`name-${item.sku}`}/>
                         <TableCol text={item.condition} key={`cond-${item.sku}`}/>
-                        <TableCol text={item.category?.category_name || 'Unknown'} key={`cat-${item.sku}`}/>
+                        <TableCol 
+                          text={categories.find(cat => cat.value === item.category_id?.toString())?.label || 'Unknown'} 
+                          key={`cat-${item.sku}`}
+                        />
                         <TableCol text={item.base_cost ? `$${Number(item.base_cost).toFixed(2)}` : 'N/A'} key={`cost-${item.sku}`}/>
                         <TableCol text={formatCurrency(item.shipment_cost)} key={`shipment-cost-${item.sku}`}/>
                         <TableCol 
