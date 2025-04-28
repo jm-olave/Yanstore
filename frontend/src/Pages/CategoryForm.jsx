@@ -18,8 +18,7 @@ const CategoryForm = () => {
   const [categories, setCategories] = useState([])
   const [deleteConfirmation, setDeleteConfirmation] = useState({
       show: false,
-      category_id: null,
-      category_name: ''
+      item: {}
     });
   const loading = apiLoading;
 
@@ -78,23 +77,21 @@ const CategoryForm = () => {
     }
   };
 
-  // Show delete confirmation dialog
-  const showDeleteConfirmation = (category_id, category_name) => {
-    setDeleteConfirmation({
-      show: true,
-      category_id,
-      category_name
-    });
-  };
+// Show delete confirmation dialog
+const showDeleteConfirmation = (item) => {
+  setDeleteConfirmation({
+    show: true,
+    item: {...item}
+  });
+};
 
-  // Hide delete confirmation dialog
-  const hideDeleteConfirmation = () => {
-    setDeleteConfirmation({
-      show: false,
-      category_id: null,
-      category_name: ''
-    });
-  };
+// Hide delete confirmation dialog
+const hideDeleteConfirmation = () => {
+  setDeleteConfirmation({
+    show: false,
+    item: {}
+  });
+};
 
   // Handle product deletion
   const handleDeleteCategory = async () => {
@@ -165,6 +162,7 @@ const CategoryForm = () => {
           deleteConfirmation={deleteConfirmation} 
           hideDeleteConfirmation={hideDeleteConfirmation} 
           handleDeleteFunction={handleDeleteCategory}
+          headers={['CATEGORY_NAME']}
           message={`Are you sure that you want to delete the category ${deleteConfirmation.category_name}?`}
         />
       )}
@@ -217,7 +215,7 @@ const CategoryForm = () => {
                         <TableCol key={`delete-${item.category_name}`}>
                           <div 
                             className='text-mainRed font-bold cursor-pointer'
-                            onClick={() => showDeleteConfirmation(item.category_id, item.category_name)}
+                            onClick={() => showDeleteConfirmation(categories)}
                           >
                             Delete
                           </div>

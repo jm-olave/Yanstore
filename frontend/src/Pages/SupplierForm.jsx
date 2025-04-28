@@ -1,71 +1,27 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import TextInput from '../Components/TextInput/TextInput'
-import NumberInput from '../Components/NumberInput/NumberInput'
-import InputSelect from '../Components/SelectInput/InputSelect'
+import TableCol from '../Components/TableCol/TableCol'
+import TableRow from '../Components/TableRow/TableRow'
 import SubmitButton from '../Components/SubmitButton/SubmitButton'
+import useApi from '../hooks/useApi'
 
-const providerTypes = [
-  {
-    value: 'Select Option',
-    label: 'Select Option'
-  },
-  {
-    value: 'regular',
-    label: 'Regular'
-  },
-  {
-    value: 'premium',
-    label: 'Premium'
-  },
-  {
-    value: 'preferred',
-    label: 'Preferred'
-  }
-]
-
-const paymentTermsOptions = [
-  {
-    value: 'pto-0',
-    label: 'Select Option'
-  },
-  {
-    value: 'pto-1',
-    label: 'Cash'
-  },
-  {
-    value: 'pto-2',
-    label: 'Credit'
-  },
-  {
-    value: 'pto-3',
-    label: 'USD'
-  },
-  
-]
-
-const apiURL = 'https://yanstore-api-6e6412b99156.herokuapp.com'
 
 const ProviderForm = () => {
+  const { loading: apiLoading, error: apiError, createSupplier, getSuppliers, deleteSupplier} = useApi();
+
   const [form, setForm] = useState({
     name: '',
-    debtor_type: 'Select Option',
-    contact_person: '',
     email: '',
     phone: '',
-    payment_terms: 'Select Option',
-    credit_limit: ''
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' })
+  const [suppliers, setSuppliers] = useState([])
 
   const validateForm = () => {
     if (!form.name.trim()) {
       setSubmitStatus({ type: 'error', message: 'Name is required' })
-      return false
-    }
-    if (form.debtor_type === 'Select Option') {
-      setSubmitStatus({ type: 'error', message: 'Please select a provider type' })
       return false
     }
     if (!form.email.trim()) {
@@ -74,14 +30,6 @@ const ProviderForm = () => {
     }
     if (!validateEmail(form.email)) {
       setSubmitStatus({ type: 'error', message: 'Please enter a valid email address' })
-      return false
-    }
-    if (form.payment_terms === 'Select Option') {
-      setSubmitStatus({ type: 'error', message: 'Please select payment terms' })
-      return false
-    }
-    if (!form.credit_limit || parseFloat(form.credit_limit) <= 0) {
-      setSubmitStatus({ type: 'error', message: 'Please enter a valid credit limit' })
       return false
     }
     return true
@@ -103,34 +51,18 @@ const ProviderForm = () => {
       setIsSubmitting(true)
       setSubmitStatus({ type: '', message: '' })
 
-      const response = await fetch(`${apiURL}/suppliers`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(form)
-      })
+      const data = await createSupplier(form)
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`)
-      }
-
-      const data = await response.json()
       setSubmitStatus({ 
         type: 'success', 
-        message: 'Provider information successfully added!' 
+        message: 'Supplier information successfully added!' 
       })
       
       // Reset form after successful submission
       setForm({
         name: '',
-        debtor_type: 'Select Option',
-        contact_person: '',
         email: '',
         phone: '',
-        payment_terms: 'Select Option',
-        credit_limit: ''
       })
 
     } catch (error) {
@@ -150,6 +82,35 @@ const ProviderForm = () => {
     }
   }
 
+  useEffect(() => {
+    const loadSuppliers = async () => {
+      try {
+        const data = await getSuppliers();
+        setSuppliers(data);
+        setSubmitStatus({ type: '', message: '' });
+
+      } catch (error) {
+        console.error('Error loading suppliers:', error);
+        setSubmitStatus({
+          type: 'error',
+          message: `Failed to load suppliers: ${error.message}`
+        });
+      }
+    }
+
+    loadSuppliers()
+    console.log(suppliers)
+  }, [getSuppliers])
+
+  useEffect(() => {
+      if (apiError) {
+        setSubmitStatus({
+          type: 'error',
+          message: apiError
+        });
+      }
+    }, [apiError]);
+
   return (
     <div className="w-11/12 pb-11 mx-auto lg:max-w-5xl">
       {submitStatus.message && (
@@ -158,66 +119,39 @@ const ProviderForm = () => {
         </div>
       )}
 
-      <form className='lg:grid lg:grid-cols-2 lg:gap-4'>
-        <div className='flex flex-col justify-evenly'>
+      <form className='lg:grid lg:grid-cols-3 lg:gap-4'>
+        <div className='flex flex-col'>
           <TextInput 
             name='name' 
             title='Name' 
             value={form.name} 
             onChange={handleFormChange}
+            placeholder='Enter Name'
             required
-          />
-          <InputSelect 
-            name='debtor_type' 
-            title='Provider Type' 
-            value={form.debtor_type} 
-            options={providerTypes} 
-            onChange={handleFormChange}
-            required
-          />
-          <TextInput 
-            name='contact_person' 
-            title='Contact Person' 
-            value={form.contact_person} 
-            onChange={handleFormChange}
           />
         </div>
-
-        <div className='flex flex-col lg:justify-between'>
+        <div className='flex flex-col'>
           <TextInput 
             name='email' 
             title='Email' 
             value={form.email} 
             onChange={handleFormChange}
+            placeholder='Enter Email'
             required
           />
+        </div>
+
+        <div className='flex flex-col'>
           <TextInput 
             name='phone' 
             title='Phone' 
             value={form.phone} 
             onChange={handleFormChange}
-          />
-          <InputSelect 
-            name='payment_terms' 
-            title='Payment Terms' 
-            value={form.payment_terms} 
-            options={paymentTermsOptions} 
-            onChange={handleFormChange}
-            required
-          />
-        </div>
-        
-        <div className='lg:col-span-2'>
-          <NumberInput 
-            name='credit_limit' 
-            title='Credit Limit' 
-            value={form.credit_limit} 
-            onChange={handleFormChange}
-            required
+            placeholder='Enter Phone'
           />
         </div>
 
-        <div className='w-2/3 mt-8 mx-auto max-w-xs lg:col-start-2 lg:m-0 lg:justify-self-end'>
+        <div className='w-full mx-auto max-w-xs lg:col-start-2'>
           <SubmitButton 
             text={isSubmitting ? 'SUBMITTING...' : 'ADD PROVIDER'} 
             onClick={handleSubmit}
@@ -225,6 +159,44 @@ const ProviderForm = () => {
           />
         </div>
       </form>
+
+      {apiLoading ? (
+        <div className="text-center py-8">
+          <p>Loading inventory data...</p>
+        </div>
+      ) : (
+        <section className='w-11/12 mx-auto max-w-7xl my-5'>
+          <div className='overflow-x-auto relative'>
+            <table className='w-full'>
+              <thead className='font-Mulish font-black text-secondaryBlue'>
+                <TableRow>
+                  <TableCol text='NAME' key='NAME'/>
+                  <TableCol text='EMAIL' key='EMAIL'/>
+                  <TableCol text='PHONE' key='PHONE'/>
+                  <TableCol text='DELETE' key='DELETE'/>
+                </TableRow>
+              </thead>
+              <tbody className='font-Josefin align-middle'>
+                {suppliers.map(item => ( 
+                  <TableRow key={item.name}>
+                    <TableCol text={item.name} key={`name-${item.name}`}/>
+                    <TableCol text={item.email} key={`email-${item.email}`}/>
+                    <TableCol text={item.phone} key={`phone-${item.phone}`}/>
+                    <TableCol key={`delete-${item.name}`}>
+                      <div 
+                        className='text-mainRed font-bold cursor-pointer'
+                      >
+                        Delete
+                      </div>
+                    </TableCol>
+                  </TableRow>
+                  ))
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

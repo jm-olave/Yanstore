@@ -255,13 +255,13 @@ export const useApi = () => {
    * @param {object} SupplierData - category ID
    * @returns {Promise<Object>} Response data
    */
-  const addSupplier = useCallback((SupplierData) => {
+  const createSupplier = useCallback((SupplierData) => {
     return fetchData('/suppliers/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(categoryData)
+      body: JSON.stringify(SupplierData)
     });
   }, [fetchData]);
 
@@ -303,7 +303,7 @@ export const useApi = () => {
     createPricePoint,
     createCategory,
     deleteCategory,
-    addSupplier,
+    createSupplier,
     getSuppliers,
     deleteSupplier,
     updateSupplier

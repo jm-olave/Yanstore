@@ -2,7 +2,35 @@ import React from 'react'
 import TableCol from '../TableCol/TableCol'
 import TableRow from '../TableRow/TableRow'
 
-const DeleteItemModal = ({deleteConfirmation, hideDeleteConfirmation, handleDeleteFunction}) => {
+const DeleteItemModal = ({deleteConfirmation, hideDeleteConfirmation, handleDeleteFunction, headers}) => {
+
+  const getItemData = (item, headers = []) => {
+    if (!item || typeof item !== 'object') {
+      console.warn("getItemData: Invalid input. Expected an object.", item);
+      return [];
+    }
+  
+    const data = [];
+    const headerSet = new Set(headers);
+    const includeAllHeaders = headers.length === 0; // Determine this *once*
+  
+    for (const [key, value] of Object.entries(item)) {
+      if (includeAllHeaders || headerSet.has(key.toLocaleUpperCase())) { // Use the boolean variable
+        data.push({
+          header: key,
+          value: value
+        });
+      }
+    }
+  
+    return data;
+  };
+
+  let data = getItemData(deleteConfirmation.item, headers)
+  console.log(deleteConfirmation.item)
+  console.log(headers)
+  console.log(data)
+
   return (
     <div className="fixed inset-0 z-10 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4">
@@ -14,18 +42,17 @@ const DeleteItemModal = ({deleteConfirmation, hideDeleteConfirmation, handleDele
               <table className='mx-auto'>
                 <thead className='font-Mulish font-black text-secondaryBlue'>
                   <TableRow>
-                    <TableCol text='SKU' key='SKU'/>
-                    <TableCol text='NAME' key='NAME'/>
-                    <TableCol text='CONDITION' key='CONDITION'/>
-                    <TableCol text='CATEGORY' key='CATEGORY'/>
+                    {data.map((item) => (
+                      <TableCol text={item.header.toLocaleUpperCase()} key={item.header.toLocaleUpperCase()}/>
+                    ))}
                   </TableRow>
                 </thead>
                 <tbody className='font-Josefin align-middle'>
                   <TableRow>
-                    <TableCol text={deleteConfirmation.item.sku} key={`sku-${deleteConfirmation.item.sku}`}/>
-                    <TableCol text={deleteConfirmation.item.name} key={`name-${deleteConfirmation.item.sku}`}/>
-                    <TableCol text={deleteConfirmation.item.condition} key={`cond-${deleteConfirmation.item.sku}`}/>
-                    <TableCol text={deleteConfirmation.item.category?.category_name || 'Unknown'} key={`cat-${deleteConfirmation.item.sku}`}/>
+                    {data.map((item) => (
+                      <TableCol text={item.value} key={item.value}/>
+                    ))}
+                    
                   </TableRow>
                 </tbody>
               </table>

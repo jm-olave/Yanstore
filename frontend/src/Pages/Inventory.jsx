@@ -371,7 +371,8 @@ const Inventory = () => {
         <DeleteItemModal 
           deleteConfirmation={deleteConfirmation} 
           hideDeleteConfirmation={hideDeleteConfirmation} 
-          handleDeleteFunction={handleDeleteProduct} 
+          handleDeleteFunction={handleDeleteProduct}
+          headers={["SKU", "NAME", "CONDITION", "CATEGORY"]}
         />
       )}
       
