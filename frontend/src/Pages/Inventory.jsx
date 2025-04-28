@@ -113,9 +113,8 @@ const Inventory = () => {
   // Handle opening/closing the image modal
   const modalHandler = (productId, productName) => {
     if (modalData.open === false && productId) {
-      const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'http://localhost:8000';
+      const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'http://127.0.0.1:8000';
       const imageUrl = `${baseUrl}/products/${productId}/image`;
-      
       setModalData({
         open: true,
         img: imageUrl,

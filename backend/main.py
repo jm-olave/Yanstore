@@ -30,20 +30,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
+# Configure CORS - Simplified version
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://192.168.2.138:5173",
-        "https://yanstoreapi-bzercjhpe2d4aueh.canadacentral-01.azurewebsites.net",
-        "https://new-yanstore-api-c29287e7c68d.herokuapp.com",
-        "https://magenta-paprenjak-8434f9.netlify.app",
-        "https://stupendous-mermaid-4ecc91.netlify.app",
-        "http://stupendous-mermaid-4ecc91.netlify.app",
-        "http://172.29.223.73:5173"],  # Add your frontend URL
-    allow_credentials=True,
+    allow_origins=["*"],  # Temporarily allow all origins for debugging
+    allow_credentials=False,  # Changed to False since we're using allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -401,59 +392,44 @@ def update_product(
         db.rollback()
         raise HTTPException(status_code=400, detail="Invalid update data")
 
-@app.get("/products/{product_id}/image", response_class=Response)
+@app.get("/products/{product_id}/image")
 async def get_product_image(
     product_id: int,
     db: Session = Depends(get_db)
 ):
     """Get the primary image for a product"""
     try:
-        # Find the primary image for this product
         product_image = db.query(models.ProductImage).filter(
             models.ProductImage.product_id == product_id,
             models.ProductImage.is_primary == True
         ).first()
         
-        # If no primary image found, try to get any image for this product
         if not product_image:
             product_image = db.query(models.ProductImage).filter(
                 models.ProductImage.product_id == product_id
             ).first()
         
-        # If no image is found or image data is empty, return a 404
         if not product_image or not product_image.image_data:
             raise HTTPException(
                 status_code=404, 
                 detail="No valid image found for this product"
             )
+
+        image_stream = BytesIO(product_image.image_data)
+        image_stream.seek(0)
         
-        # Validate image data
-        if len(product_image.image_data) == 0:
-            raise HTTPException(
-                status_code=404,
-                detail="Image data is empty"
-            )
+        content_type = "image/jpeg" if product_image.image_type.lower() in ["jpg", "jpeg"] else "image/png"
         
-        # Determine the content type based on image_type
-        content_type = "image/jpeg" if product_image.image_type == "jpg" else "image/png"
-        
-        # Return the image with proper headers
-        return Response(
-            content=product_image.image_data,
-            media_type=content_type,
-            headers={
-                "Cache-Control": "public, max-age=3600",
-                "Access-Control-Allow-Origin": "*",
-                "Content-Disposition": f"inline; filename=product_{product_id}.{product_image.image_type}"
-            }
+        return StreamingResponse(
+            image_stream,
+            media_type=content_type
         )
-    except HTTPException:
-        raise
+        
     except Exception as e:
-        logger.error(f"Error retrieving image for product {product_id}: {str(e)}")
+        logger.error(f"Error serving image for product {product_id}: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail="Internal server error while retrieving image"
+            detail=str(e)
         )
 
 @app.delete("/products/{product_id}", response_model=dict)

@@ -10,68 +10,98 @@ const ModalImage = ({ data, handler }) => {
   
   const display = open ? 'block' : 'hidden'
 
+  const handleBackgroundClick = (e) => {
+    // Prevent event from reaching parent elements
+    e.stopPropagation()
+    
+    // Check if the click was directly on the background
+    if (e.target.classList.contains('modal-overlay')) {
+      handler()
+    }
+  }
+
   useEffect(() => {
-    // Reset states when modal opens/closes
+    let isMounted = true
+
+    const loadImage = async (url) => {
+      try {
+        if (!url || url.trim() === '') {
+          throw new Error('Invalid image URL')
+        }
+
+        const response = await fetch(url, {
+          credentials: 'omit', // Changed from 'include' to 'omit'
+          mode: 'cors',
+          headers: {
+            'Accept': 'image/jpeg,image/png,*/*'
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const blob = await response.blob()
+        const objectUrl = URL.createObjectURL(blob)
+        
+        if (isMounted) {
+          setImageUrl(objectUrl)
+          setIsLoading(false)
+          setHasError(false)
+        }
+      } catch (error) {
+        if (!errorLogged.current) {
+          console.error('Failed to load image URL:', url, error)
+          errorLogged.current = true
+        }
+        if (isMounted) {
+          setIsLoading(false)
+          setHasError(true)
+        }
+      }
+    }
+
     if (!open) {
       setIsLoading(true)
       setHasError(false)
       setImageUrl('')
       errorLogged.current = false
-      return
+    } else if (img) {
+      loadImage(img)
     }
 
-    // Only set image URL if we have a valid img prop
-    if (img && img.trim() !== '') {
-      setImageUrl(img)
-      setIsLoading(true)
-      setHasError(false)
-    } else {
-      setHasError(true)
-      setIsLoading(false)
+    return () => {
+      isMounted = false
+      if (imageUrl && imageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imageUrl)
+      }
     }
   }, [img, open])
 
-  const handleImageLoad = () => {
-    setIsLoading(false)
-    setHasError(false)
-  }
-
-  const handleImageError = () => {
-    // Only log error once per modal open
-    if (!errorLogged.current) {
-      console.error('Failed to load image URL:', imageUrl)
-      errorLogged.current = true
-    }
-    setIsLoading(false)
-    setHasError(true)
-  }
-
-  // Stop propagation on modal content click
-  const handleContentClick = (e) => {
-    e.stopPropagation()
-  }
+  if (!open) return null
 
   return (
-    <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 ${display}`} onClick={handler}>
-      <div className='flex flex-col h-screen justify-center items-center' onClick={handleContentClick}>
-        <div className="max-w-4xl max-h-[80vh] bg-white rounded-lg overflow-hidden relative">
+    <div 
+      className={`fixed inset-0 bg-black bg-opacity-50 z-50 modal-overlay`}
+      onClick={handleBackgroundClick}
+    >
+      <div className='flex flex-col h-screen justify-center items-center'>
+        <div 
+          className="max-w-4xl max-h-[80vh] bg-white rounded-lg overflow-hidden relative"
+          onClick={(e) => e.stopPropagation()} // Prevent clicks on the content from closing the modal
+        >
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
               <div className="text-gray-600">Loading...</div>
             </div>
           )}
           
-          {/* Only render img element if we have a URL */}
-          {imageUrl && (
-            <img 
-              src={hasError ? TestImage : imageUrl}
-              alt={caption || 'Product Image'} 
-              className="max-h-[70vh] w-auto mx-auto object-contain"
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-              style={{ display: isLoading ? 'none' : 'block' }}
-            />
-          )}
+          <img 
+            src={hasError ? TestImage : imageUrl}
+            alt={caption || 'Product Image'} 
+            className="max-h-[70vh] w-auto mx-auto object-contain"
+            style={{ display: isLoading ? 'none' : 'block' }}
+          />
           
           <div className="p-4 bg-white">
             <p className="text-center text-lg font-semibold font-Mulish text-secondaryBlue">
