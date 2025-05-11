@@ -7,18 +7,6 @@ const ModalImage = ({ data, handler }) => {
   const [hasError, setHasError] = useState(false)
   const [imageUrl, setImageUrl] = useState('')
   const errorLogged = useRef(false)
-  
-  const display = open ? 'block' : 'hidden'
-
-  const handleBackgroundClick = (e) => {
-    // Prevent event from reaching parent elements
-    e.stopPropagation()
-    
-    // Check if the click was directly on the background
-    if (e.target.classList.contains('modal-overlay')) {
-      handler()
-    }
-  }
 
   useEffect(() => {
     let isMounted = true
@@ -30,7 +18,7 @@ const ModalImage = ({ data, handler }) => {
         }
 
         const response = await fetch(url, {
-          credentials: 'omit', // Changed from 'include' to 'omit'
+          credentials: 'omit',
           mode: 'cors',
           headers: {
             'Accept': 'image/jpeg,image/png,*/*'
@@ -82,33 +70,67 @@ const ModalImage = ({ data, handler }) => {
 
   return (
     <div 
-      className={`fixed inset-0 bg-black bg-opacity-50 z-50 modal-overlay`}
-      onClick={handleBackgroundClick}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+      onClick={() => handler()}
     >
-      <div className='flex flex-col h-screen justify-center items-center'>
-        <div 
-          className="max-w-4xl max-h-[80vh] bg-white rounded-lg overflow-hidden relative"
-          onClick={(e) => e.stopPropagation()} // Prevent clicks on the content from closing the modal
-        >
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-              <div className="text-gray-600">Loading...</div>
-            </div>
-          )}
-          
-          <img 
-            src={hasError ? TestImage : imageUrl}
-            alt={caption || 'Product Image'} 
-            className="max-h-[70vh] w-auto mx-auto object-contain"
-            style={{ display: isLoading ? 'none' : 'block' }}
-          />
-          
-          <div className="p-4 bg-white">
-            <p className="text-center text-lg font-semibold font-Mulish text-secondaryBlue">
-              {caption}
-              {hasError && " (Failed to load image)"}
-            </p>
+      <div 
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          maxWidth: '64rem',
+          maxHeight: '80vh',
+          overflow: 'hidden',
+          position: 'relative'
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {isLoading && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#f3f4f6'
+          }}>
+            <div style={{color: '#4b5563'}}>Loading...</div>
           </div>
+        )}
+        
+        <img 
+          src={hasError ? TestImage : imageUrl}
+          alt={caption || 'Product Image'} 
+          style={{
+            maxHeight: '70vh',
+            width: 'auto',
+            margin: '0 auto',
+            objectFit: 'contain',
+            display: isLoading ? 'none' : 'block'
+          }}
+        />
+        
+        <div style={{padding: '1rem', backgroundColor: 'white'}}>
+          <p style={{
+            textAlign: 'center',
+            fontSize: '1.125rem',
+            fontWeight: '600',
+            fontFamily: 'Mulish',
+            color: '#1D3D91'
+          }}>
+            {caption}
+            {hasError && " (Failed to load image)"}
+          </p>
         </div>
       </div>
     </div>

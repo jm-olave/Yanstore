@@ -77,6 +77,23 @@ const Inventory = () => {
   // Add sell handler
   const handleSell = async () => {
     try {
+      // Validate required fields
+      if (!saleData.sale_price) {
+        setSubmitStatus({
+          type: 'error',
+          message: 'Sale price is required'
+        });
+        return;
+      }
+      
+      if (!saleData.payment_method) {
+        setSubmitStatus({
+          type: 'error',
+          message: 'Payment method is required'
+        });
+        return;
+      }
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/products/${selectedProduct.product_id}/sell`, {
         method: 'POST',
         headers: {
@@ -88,7 +105,9 @@ const Inventory = () => {
         }),
       });
 
-      if (response.ok) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         // Refresh product list
         fetchProducts();
         setSellModalOpen(false);
@@ -98,8 +117,9 @@ const Inventory = () => {
           message: 'Product sold successfully'
         });
       } else {
-        const error = await response.json();
-        throw new Error(error.detail);
+        // Extract error message from response
+        const errorMessage = data.detail || 'Unknown error occurred';
+        throw new Error(errorMessage);
       }
     } catch (error) {
       setSubmitStatus({
@@ -376,15 +396,15 @@ const Inventory = () => {
       {/* Sell Modal */}
       {sellModalOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Sell {selectedProduct.name}</h2>
+          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
+            <h2 className="text-xl font-bold mb-4 text-secondaryBlue">Sell {selectedProduct.name}</h2>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Sale Price</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sale Price</label>
                 <input
                   type="number"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-secondaryBlue focus:ring focus:ring-secondaryBlue focus:ring-opacity-50"
                   value={saleData.sale_price}
                   onChange={(e) => setSaleData({...saleData, sale_price: e.target.value})}
                   placeholder="Enter sale price"
@@ -392,9 +412,9 @@ const Inventory = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700">Payment Method</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
                 <select
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-secondaryBlue focus:ring focus:ring-secondaryBlue focus:ring-opacity-50"
                   value={saleData.payment_method}
                   onChange={(e) => setSaleData({...saleData, payment_method: e.target.value})}
                 >
@@ -408,9 +428,9 @@ const Inventory = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700">Notes</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                 <textarea
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-secondaryBlue focus:ring focus:ring-secondaryBlue focus:ring-opacity-50"
                   value={saleData.notes}
                   onChange={(e) => setSaleData({...saleData, notes: e.target.value})}
                   placeholder="Add sale notes"
@@ -422,13 +442,13 @@ const Inventory = () => {
             <div className="mt-6 flex justify-end space-x-3">
               <button
                 onClick={() => setSellModalOpen(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                className="px-4 py-2 bg-red-600 text-mainRed border border-mainRed rounded-md font-Mulish font-black hover:text-white hover:bg-mainRed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSell}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                className="px-4 py-2 border rounded-md font-Mulish font-black text-secondaryBlue hover:text-white hover:bg-secondaryBlue"
               >
                 Confirm Sale
               </button>
@@ -555,10 +575,10 @@ const Inventory = () => {
                               setSellModalOpen(true);
                             }}
                             disabled={!item.inventory || item.inventory.available_quantity === 0}
-                            className={`px-4 py-2 rounded ${
+                            className={`text-secondaryBlue px-4 py-2 rounded font-bold ${
                               (!item.inventory || item.inventory.available_quantity === 0)
                                 ? 'bg-gray-300 text-gray-600'
-                                : 'bg-green-500 hover:bg-green-600 text-white'
+                                : 'bg-green-500 hover:bg-green-600 text-Green'
                             }`}
                           >
                             {(!item.inventory || item.inventory.available_quantity === 0) ? 'Out of Stock' : 'Sell'}
