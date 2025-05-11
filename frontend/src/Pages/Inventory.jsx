@@ -63,6 +63,7 @@ const Inventory = () => {
   const [saleData, setSaleData] = useState({
     sale_price: '',
     payment_method: '',
+    sale_date: new Date().toISOString().split('T')[0], // Default to today's date
     notes: ''
   });
 
@@ -94,6 +95,18 @@ const Inventory = () => {
         return;
       }
 
+      if (!saleData.sale_date) {
+        setSubmitStatus({
+          type: 'error',
+          message: 'Sale date is required'
+        });
+        return;
+      }
+
+      // Format the date as ISO string with time
+      const saleDate = new Date(saleData.sale_date);
+      saleDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+      
       const response = await fetch(`${import.meta.env.VITE_API_URL}/products/${selectedProduct.product_id}/sell`, {
         method: 'POST',
         headers: {
@@ -101,17 +114,22 @@ const Inventory = () => {
         },
         body: JSON.stringify({
           ...saleData,
-          sale_date: new Date().toISOString(),
+          sale_date: saleDate.toISOString(),
         }),
       });
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
+      if (response.ok) {
         // Refresh product list
         fetchProducts();
         setSellModalOpen(false);
-        setSaleData({ sale_price: '', payment_method: '', notes: '' });
+        setSaleData({ 
+          sale_price: '', 
+          payment_method: '', 
+          sale_date: new Date().toISOString().split('T')[0],
+          notes: '' 
+        });
         setSubmitStatus({
           type: 'success',
           message: 'Product sold successfully'
@@ -119,7 +137,7 @@ const Inventory = () => {
       } else {
         // Extract error message from response
         const errorMessage = data.detail || 'Unknown error occurred';
-        throw new Error(errorMessage);
+        throw new Error(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
       }
     } catch (error) {
       setSubmitStatus({
@@ -425,6 +443,17 @@ const Inventory = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sale Date</label>
+                <input
+                  type="date"
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-secondaryBlue focus:ring focus:ring-secondaryBlue focus:ring-opacity-50"
+                  value={saleData.sale_date}
+                  onChange={(e) => setSaleData({...saleData, sale_date: e.target.value})}
+                  max={new Date().toISOString().split('T')[0]} // Prevent future dates
+                />
               </div>
               
               <div>

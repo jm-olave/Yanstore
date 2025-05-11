@@ -9,6 +9,7 @@ import FinancialInformationForm from './Pages/FinancialInformationForm.jsx'
 import Inventory from './Pages/Inventory.jsx'
 import ProductForm from './Pages/ProductForm.jsx'
 import SupplierForm from './Pages/SupplierForm.jsx'
+import SalesHistory from './Pages/SalesHistory.jsx'
 import { validateEnv, logEnvironmentInfo } from './utils/validateEnv.js'
 import Statistics from './Pages/Statistics.jsx'
 import PageLayout from './Layouts/PageLayout.jsx'
@@ -38,6 +39,9 @@ createRoot(document.getElementById('root')).render(
         </Route>
         <Route element={<FormLayout title={'INVENTORY'}/>}>
           <Route path='inventory' element={<Inventory/>}/>
+        </Route>
+        <Route element={<FormLayout title={'SALES HISTORY'}/>}>
+          <Route path='sales-history' element={<SalesHistory/>}/>
         </Route>
         <Route element={<FormLayout title={'FINANCIAL INFORMATION'}/>}>
           <Route path='add-financial-information/:productId' element={<FinancialInformationForm/>}/>

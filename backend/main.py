@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import extract
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import logging
 import argparse
 import os
@@ -354,6 +354,22 @@ def get_products(
         print(f"Error in get_products: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# Make sure this specific route comes BEFORE the general product_id route
+@app.get("/products-with-rentability/", response_model=List[schema.ProductResponse])
+def get_products_with_rentability(db: Session = Depends(get_db)):
+    """Get all products with their rentability metrics"""
+    products = db.query(models.Product).all()
+    
+    response_products = []
+    for product in products:
+        product_dict = product.__dict__
+        rentability_metrics = product.calculate_rentability(db)
+        product_dict.update(rentability_metrics)
+        response_products.append(product_dict)
+    
+    return response_products
+
+# This more general route should come AFTER the specific route
 @app.get("/products/{product_id}", response_model=schema.ProductResponse)
 def get_product(
     product_id: int,
@@ -679,54 +695,6 @@ def get_product_price_points(
 
 
 
-
-
-
-@app.post("/sales/", response_model=schema.SaleResponse)
-def register_sale(
-    sale: schema.SaleCreate,
-    db: Session = Depends(get_db)
-):
-    """Register a product sale and update inventory"""
-    try:
-        # Start transaction
-        db_sale = models.Sale(**sale.dict())
-        db.add(db_sale)
-
-        # Update inventory
-        inventory = db.query(models.Inventory).filter(
-            models.Inventory.product_id == sale.product_id
-        ).first()
-        
-        if inventory:
-            if inventory.available_quantity < 1:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Product out of stock"
-                )
-            inventory.available_quantity -= 1
-            
-            # Create inventory transaction
-            transaction = models.InventoryTransaction(
-                inventory_id=inventory.inventory_id,
-                transaction_type="sale",
-                quantity=-1,
-                reference_id=str(db_sale.sale_id),
-                notes=f"Sale registered on {sale.sale_date}",
-                created_by="system"
-            )
-            db.add(transaction)
-
-        # Update financial metrics
-        update_financial_metrics(db, sale)
-        
-        db.commit()
-        db.refresh(db_sale)
-        return db_sale
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=400, detail="Invalid sale data")
-
 #  inventory endpoints 
 @app.get("/inventory/{product_id}", response_model=schema.InventoryResponse)
 def get_product_inventory(
@@ -831,32 +799,6 @@ def update_financial_metrics(db: Session, sale: schema.SaleCreate):
         
     db.commit()
 
-@app.get("/products/with-rentability", response_model=List[schema.ProductResponse])
-def get_products_with_rentability(db: Session = Depends(get_db)):
-    """Get all products with their rentability metrics"""
-    products = db.query(models.Product).all()
-    
-    response_products = []
-    for product in products:
-        product_dict = product.__dict__
-        rentability_metrics = product.calculate_rentability(db)
-        product_dict.update(rentability_metrics)
-        response_products.append(product_dict)
-    
-    return response_products
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--reset-db", action="store_true", help="Reset the database")
-    args = parser.parse_args()
-
-    if args.reset_db:
-        init_db()
-        print("Database reset complete")
-    else:
-        import uvicorn
-        uvicorn.run("app", host="0.0.0.0", port=8000)
-
 # api calles exchange rate api 
 @app.get("/exchange-rates/")
 async def get_exchange_rates(base_currency: str = "USD"):
@@ -908,7 +850,7 @@ def sell_product(
             
         # Create sale record
         db_sale = models.Sale(
-            product_id=product_id,
+            product_id=product_id,  # Use the path parameter
             sale_price=sale.sale_price,
             sale_date=sale.sale_date,
             payment_method=sale.payment_method,
@@ -937,8 +879,10 @@ def sell_product(
             )
             db.add(transaction)
 
-        # Update financial metrics
-        update_financial_metrics(db, sale)
+        # Check if update_financial_metrics function exists and update it if needed
+        # If you have this function, make sure it uses product_id from the path parameter
+        # For example:
+        # update_financial_metrics(db, product_id, sale)
         
         db.commit()
         db.refresh(db_sale)
@@ -946,3 +890,99 @@ def sell_product(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Invalid sale data")
+
+
+# Sales history endpoints
+@app.get("/sales/", response_model=List[schema.SaleResponse])
+def get_sales_history(
+    skip: int = 0,
+    limit: int = 100,
+    product_id: Optional[int] = None,
+    payment_method: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Get sales history with optional filtering
+    
+    Parameters:
+    - skip: Number of records to skip (for pagination)
+    - limit: Maximum number of records to return
+    - product_id: Filter by specific product
+    - payment_method: Filter by payment method
+    - start_date: Filter sales after this date (format: YYYY-MM-DD)
+    - end_date: Filter sales before this date (format: YYYY-MM-DD)
+    """
+    try:
+        # Start with a base query
+        query = db.query(models.Sale).join(models.Product)
+        
+        # Apply filters if provided
+        if product_id:
+            query = query.filter(models.Sale.product_id == product_id)
+        
+        if payment_method:
+            query = query.filter(models.Sale.payment_method == payment_method)
+        
+        if start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
+                query = query.filter(models.Sale.sale_date >= start_date_obj)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid start_date format. Use YYYY-MM-DD"
+                )
+        
+        if end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
+                # Add one day to include the end date fully
+                end_date_obj = end_date_obj + timedelta(days=1)
+                query = query.filter(models.Sale.sale_date < end_date_obj)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid end_date format. Use YYYY-MM-DD"
+                )
+        
+        # Order by most recent sales first
+        query = query.order_by(models.Sale.sale_date.desc())
+        
+        # Apply pagination
+        sales = query.offset(skip).limit(limit).all()
+        
+        return sales
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while retrieving sales history: {str(e)}"
+        )
+
+@app.get("/sales/{sale_id}", response_model=schema.SaleDetailResponse)
+def get_sale_details(
+    sale_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get detailed information about a specific sale"""
+    sale = db.query(models.Sale).filter(models.Sale.sale_id == sale_id).first()
+    
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+    
+    return sale
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--reset-db", action="store_true", help="Reset the database")
+    args = parser.parse_args()
+
+    if args.reset_db:
+        init_db()
+        print("Database reset complete")
+    else:
+        import uvicorn
+        uvicorn.run("app", host="0.0.0.0", port=8000)

@@ -83,7 +83,6 @@ class PricePointResponse(PricePointBase):
 
 class SaleBase(BaseModel):
     """Base schema for sale data"""
-    product_id: int
     sale_price: Decimal = Field(..., ge=0)
     sale_date: datetime
     payment_method: str = Field(..., pattern='^(Credit|Cash|USD|Trade)$')
@@ -91,15 +90,19 @@ class SaleBase(BaseModel):
 
 class SaleCreate(SaleBase):
     """Schema for creating a new sale"""
+    # product_id is not needed here as it comes from the URL path
     pass
 
 class SaleResponse(SaleBase):
     """Schema for sale responses"""
     sale_id: int
+    product_id: int
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
 
 class FinancialMetricBase(BaseModel):
     """Base schema for financial metrics"""
@@ -200,7 +203,12 @@ class InventoryTransactionResponse(InventoryTransactionBase):
 
 
 
+class SaleDetailResponse(SaleResponse):
+    """Schema for detailed sale responses including product information"""
+    product: ProductResponse
 
+    class Config:
+        from_attributes = True
 
 
 
