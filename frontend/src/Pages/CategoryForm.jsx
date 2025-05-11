@@ -96,7 +96,7 @@ const hideDeleteConfirmation = () => {
   // Handle product deletion
   const handleDeleteCategory = async () => {
     try {
-      const categoryId = deleteConfirmation.category_id;
+      const categoryId = deleteConfirmation.item.category_id;
       
       if (!categoryId) return;
       
@@ -215,7 +215,7 @@ const hideDeleteConfirmation = () => {
                         <TableCol key={`delete-${item.category_name}`}>
                           <div 
                             className='text-mainRed font-bold cursor-pointer'
-                            onClick={() => showDeleteConfirmation(categories)}
+                            onClick={() => showDeleteConfirmation(item)}
                           >
                             Delete
                           </div>
