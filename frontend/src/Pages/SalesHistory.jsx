@@ -5,6 +5,11 @@ import TableCol from '../Components/TableCol/TableCol';
 import InputSelect from '../Components/SelectInput/InputSelect';
 import useApi from '../hooks/useApi';
 import Caret from '../Components/Caret/Caret';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Pie } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 const ITEMS_PER_PAGE = 100;
 
@@ -19,6 +24,8 @@ const SalesHistory = () => {
     end_date: '',
     product_id: ''
   });
+  const [rentabilityData, setRentabilityData] = useState([]);
+  const [rentabilityLoading, setRentabilityLoading] = useState(true);
 
   const tableHeaders = [
     'SALE ID',
@@ -114,10 +121,98 @@ const SalesHistory = () => {
     }).format(amount);
   };
 
+  // New function to fetch rentability data
+  const fetchRentabilityData = async () => {
+    setRentabilityLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/products-with-rentability/`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch rentability data');
+      }
+      
+      const data = await response.json();
+      
+      // Filter products that have sales (sales_count > 0)
+      const productsWithSales = data.filter(product => product.sales_count > 0);
+      
+      setRentabilityData(productsWithSales);
+    } catch (error) {
+      console.error('Error fetching rentability data:', error);
+    } finally {
+      setRentabilityLoading(false);
+    }
+  };
+
+  // Prepare chart data
+  const prepareChartData = () => {
+    // Sort products by total_profit in descending order
+    const sortedProducts = [...rentabilityData].sort((a, b) => b.total_profit - a.total_profit);
+    
+    // Take top 10 products for better visualization
+    const topProducts = sortedProducts.slice(0, 10);
+    
+    // Generate random colors for chart segments
+    const generateColors = (count) => {
+      const colors = [];
+      for (let i = 0; i < count; i++) {
+        const hue = (i * 137) % 360; // Use golden ratio to spread colors
+        colors.push(`hsl(${hue}, 70%, 60%)`);
+      }
+      return colors;
+    };
+    
+    const backgroundColors = generateColors(topProducts.length);
+    
+    return {
+      labels: topProducts.map(product => product.name || `Product #${product.product_id}`),
+      datasets: [
+        {
+          label: 'Total Profit',
+          data: topProducts.map(product => product.total_profit),
+          backgroundColor: backgroundColors,
+          borderColor: backgroundColors.map(color => color.replace('60%', '50%')),
+          borderWidth: 1,
+        },
+      ],
+    };
+  };
+
+  // Chart options
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'right',
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const label = context.label || '';
+            const value = context.raw || 0;
+            return `${label}: $${value.toFixed(2)}`;
+          }
+        }
+      },
+      title: {
+        display: true,
+        text: 'Product Profitability (Top 10)',
+        font: {
+          size: 16,
+        }
+      },
+    },
+  };
+
   // Fetch data when component mounts or filters/pagination changes
   useEffect(() => {
     fetchSales();
   }, [currentPage, filters]);
+
+  // Fetch rentability data when component mounts
+  useEffect(() => {
+    fetchRentabilityData();
+  }, []);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -298,6 +393,73 @@ const SalesHistory = () => {
           </nav>
         </div>
       )}
+
+      {/* Rentability Chart Section */}
+      <div className="mt-12 bg-white p-6 rounded shadow">
+        <h2 className="text-xl font-bold text-gray-800 mb-6">Product Profitability Analysis</h2>
+        
+        {rentabilityLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-secondaryBlue"></div>
+          </div>
+        ) : rentabilityData.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div>
+              <div className="h-80">
+                <Pie data={prepareChartData()} options={chartOptions} />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Top 5 Most Profitable Products</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Profit</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales Count</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rentability %</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {rentabilityData
+                      .sort((a, b) => b.total_profit - a.total_profit)
+                      .slice(0, 5)
+                      .map((product) => (
+                        <tr key={product.product_id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <Link to={`/products/${product.product_id}`} className="text-secondaryBlue hover:underline">
+                              {product.name || `Product #${product.product_id}`}
+                            </Link>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatCurrency(product.total_profit)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {product.sales_count}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              product.rentability_percentage > 20 ? 'bg-green-100 text-green-800' : 
+                              product.rentability_percentage > 0 ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {product.rentability_percentage.toFixed(2)}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            No products with sales data found. Sell some products to see profitability analysis.
+          </div>
+        )}
+      </div>
     </div>
   );
 };

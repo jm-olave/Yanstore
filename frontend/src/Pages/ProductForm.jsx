@@ -509,6 +509,16 @@ const ProductForm = () => {
             max={today}
             required
           />
+          
+          <NumberInput
+            name="initial_quantity"
+            title="Initial Quantity"
+            value={form.initial_quantity}
+            onChange={handleFormChange}
+            min="1"
+            required
+          />
+          
           <ImageInput
             name="image"
             title="Image"
