@@ -36,7 +36,7 @@ const PageLayout = () => {
                     </ul>
                 </nav>
             </section>
-            <section className='w-[85%] h-[94%] overflow-y-auto'>
+            <section className='w-[85%] h-full overflow-y-auto'>
                     <Outlet/>
             </section>
         </div>

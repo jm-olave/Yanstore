@@ -217,7 +217,7 @@ const SalesHistory = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Sales History</h1>
+        <h1 className="text-2xl font-black text-secondaryBlue font-Mulish">Sales History</h1>
         <Link
           to="/inventory"
           className="bg-secondaryBlue text-white px-4 py-2 rounded hover:bg-blue-700"
@@ -228,10 +228,10 @@ const SalesHistory = () => {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded shadow mb-6">
-        <h2 className="text-lg font-semibold mb-3">Filters</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <h2 className="text-lg mb-3 font-black text-secondaryBlue font-Mulish">Filters</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-secondaryBlue font-Mulish font-bold">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm text-gray-700 mb-1">
               Payment Method
             </label>
             <select
@@ -248,7 +248,7 @@ const SalesHistory = () => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm text-gray-700 mb-1">
               Start Date
             </label>
             <input
@@ -260,7 +260,7 @@ const SalesHistory = () => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm text-gray-700 mb-1">
               End Date
             </label>
             <input
@@ -272,7 +272,7 @@ const SalesHistory = () => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm text-gray-700 mb-1">
               Product ID
             </label>
             <input
@@ -292,7 +292,7 @@ const SalesHistory = () => {
           <thead>
             <tr className="bg-gray-100">
               {tableHeaders.map((header, index) => (
-                <th key={index} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th key={index} className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider font-black text-secondaryBlue">
                   {header}
                 </th>
               ))}
@@ -310,25 +310,25 @@ const SalesHistory = () => {
             ) : sales.length > 0 ? (
               sales.map((sale) => (
                 <tr key={sale.sale_id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-secondaryBlue">
                     {sale.sale_id}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-secondaryBlue">
                     {sale.product_id}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-secondaryBlue">
                     {formatCurrency(sale.sale_price)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-secondaryBlue">
                     {sale.payment_method}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-secondaryBlue">
                     {formatDate(sale.sale_date)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-secondaryBlue">
                     {sale.notes || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-secondaryBlue">
                     <Link
                       to={`/products/${sale.product_id}`}
                       className="text-secondaryBlue hover:text-blue-700 mr-3"
@@ -396,7 +396,7 @@ const SalesHistory = () => {
 
       {/* Rentability Chart Section */}
       <div className="mt-12 bg-white p-6 rounded shadow">
-        <h2 className="text-xl font-bold text-gray-800 mb-6">Product Profitability Analysis</h2>
+        <h2 className="text-xl text-gray-800 mb-6 text-secondaryBlue font-Mulish font-black">Product Profitability Analysis</h2>
         
         {rentabilityLoading ? (
           <div className="flex justify-center py-8">
@@ -410,15 +410,15 @@ const SalesHistory = () => {
               </div>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-4">Top 5 Most Profitable Products</h3>
+              <h3 className="text-lg font-semibold mb-4 text-secondaryBlue font-Mulish">Top 5 Most Profitable Products</h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Profit</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales Count</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rentability %</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-secondaryBlue uppercase tracking-wider">Product</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-secondaryBlue uppercase tracking-wider">Total Profit</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-secondaryBlue uppercase tracking-wider">Sales Count</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-secondaryBlue uppercase tracking-wider">Rentability %</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
