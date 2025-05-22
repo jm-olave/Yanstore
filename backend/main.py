@@ -616,7 +616,81 @@ def delete_supplier(
             detail=f"An error occurred while deleting/deactivating the supplier: {str(e)}"
         )
 
-# pricepoint and financial endpoints 
+# Profit and Loss Endpoints
+@app.post("/profit-and-loss/", response_model=schema.ProfitAndLossResponse, status_code=201)
+def create_profit_and_loss_statement(
+    pnl_data: schema.ProfitAndLossCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new Profit and Loss statement for a specific month.
+    Ensures that only one P&L statement can exist per month.
+    """
+    # Check if a P&L statement for the given month already exists
+    existing_pnl = db.query(models.ProfitAndLoss).filter(
+        extract('year', models.ProfitAndLoss.month) == pnl_data.month.year,
+        extract('month', models.ProfitAndLoss.month) == pnl_data.month.month
+    ).first()
+
+    if existing_pnl:
+        raise HTTPException(
+            status_code=400,
+            detail=f"A Profit and Loss statement for {pnl_data.month.strftime('%Y-%m')} already exists."
+        )
+
+    try:
+        db_pnl = models.ProfitAndLoss(**pnl_data.dict())
+        db.add(db_pnl)
+        db.commit()
+        db.refresh(db_pnl)
+        return db_pnl
+    except IntegrityError: # Catch other potential integrity errors, though month uniqueness is handled above
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Error creating Profit and Loss statement due to data integrity issues."
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating P&L statement: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred while creating the Profit and Loss statement."
+        )
+
+@app.get("/profit-and-loss/", response_model=List[schema.ProfitAndLossResponse])
+def list_profit_and_loss_statements(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """
+    List Profit and Loss statements.
+    Can be filtered by a date range (inclusive for start_date, exclusive for end_date's month end).
+    Results are ordered by month in descending order.
+    """
+    query = db.query(models.ProfitAndLoss)
+
+    if start_date:
+        # Filter for months greater than or equal to the start_date's month
+        query = query.filter(models.ProfitAndLoss.month >= start_date.replace(day=1))
+
+    if end_date:
+        # Filter for months less than or equal to the end_date's month
+        # To include the whole month of end_date, we find the first day of the next month
+        # and filter for records strictly before that.
+        if end_date.month == 12:
+            next_month_start = date(end_date.year + 1, 1, 1)
+        else:
+            next_month_start = date(end_date.year, end_date.month + 1, 1)
+        query = query.filter(models.ProfitAndLoss.month < next_month_start)
+
+    pnl_statements = query.order_by(models.ProfitAndLoss.month.desc()).offset(skip).limit(limit).all()
+    return pnl_statements
+
+# pricepoint and financial endpoints
 @app.post("/price-points/", response_model=schema.PricePointResponse)
 def create_price_point(
     price_point: schema.PricePointCreate,

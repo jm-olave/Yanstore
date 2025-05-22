@@ -33,6 +33,9 @@ const PageLayout = () => {
                         <li className='my-5 border-b-2 cursor-pointer'>
                             <Link to='statistics'>STATISTICS</Link>
                         </li>
+                        <li className='my-5 border-b-2 cursor-pointer'>
+                            <Link to='profit-and-loss'>P & L</Link>
+                        </li>
                     </ul>
                 </nav>
             </section>

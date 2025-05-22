@@ -81,6 +81,39 @@ class PricePointResponse(PricePointBase):
     class Config:
         from_attributes = True
 
+# Schemas for Profit and Loss
+class ProfitAndLossBase(BaseModel):
+    month: date
+    gross_sales: Decimal = Field(default=0.00, ge=0)
+    sales_discounts: Decimal = Field(default=0.00, ge=0)
+    shipping_income: Decimal = Field(default=0.00, ge=0)
+    shipping_expense: Decimal = Field(default=0.00, ge=0)
+    gross_profit: Decimal = Field(default=0.00) # Can be negative
+    beginning_inventory_value: Decimal = Field(default=0.00, ge=0)
+    purchases_colombia: Decimal = Field(default=0.00, ge=0)
+    purchases_usa: Decimal = Field(default=0.00, ge=0)
+    ending_inventory_value: Decimal = Field(default=0.00, ge=0)
+    cost_of_sales: Decimal = Field(default=0.00, ge=0)
+    payroll_payments: Decimal = Field(default=0.00, ge=0)
+    net_income_without_operations: Decimal = Field(default=0.00) # Can be negative
+    costs_and_expenses: Decimal = Field(default=0.00, ge=0)
+    income: Decimal = Field(default=0.00, ge=0)
+    operating_income: Decimal = Field(default=0.00) # Can be negative
+    tax_collection: Decimal = Field(default=0.00, ge=0)
+    reserve_collection: Decimal = Field(default=0.00, ge=0)
+    net_income: Decimal = Field(default=0.00) # Can be negative
+
+class ProfitAndLossCreate(ProfitAndLossBase):
+    pass
+
+class ProfitAndLossResponse(ProfitAndLossBase):
+    pnl_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class SaleBase(BaseModel):
     """Base schema for sale data"""
     sale_price: Decimal = Field(..., ge=0)

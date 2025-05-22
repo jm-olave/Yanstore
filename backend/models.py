@@ -308,3 +308,29 @@ class FinancialMetric(Base):
     reserve_rate = Column(Numeric(5, 2))
     profit_margin = Column(Numeric(5, 2))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ProfitAndLoss(Base):
+    __tablename__ = "profit_and_loss"
+
+    pnl_id = Column(Integer, primary_key=True, index=True)
+    month = Column(Date, nullable=False)  # Consider unique=True or composite key for one P&L per month
+    gross_sales = Column(Numeric(12, 2), nullable=False, default=0.00)
+    sales_discounts = Column(Numeric(12, 2), nullable=False, default=0.00)
+    shipping_income = Column(Numeric(12, 2), nullable=False, default=0.00) # Income from shipping charged
+    shipping_expense = Column(Numeric(12, 2), nullable=False, default=0.00) # Cost of shipping paid
+    gross_profit = Column(Numeric(12, 2), nullable=False, default=0.00)
+    beginning_inventory_value = Column(Numeric(12, 2), nullable=False, default=0.00)
+    purchases_colombia = Column(Numeric(12, 2), nullable=False, default=0.00)
+    purchases_usa = Column(Numeric(12, 2), nullable=False, default=0.00)
+    ending_inventory_value = Column(Numeric(12, 2), nullable=False, default=0.00)
+    cost_of_sales = Column(Numeric(12, 2), nullable=False, default=0.00)
+    payroll_payments = Column(Numeric(12, 2), nullable=False, default=0.00)
+    net_income_without_operations = Column(Numeric(12, 2), nullable=False, default=0.00)
+    costs_and_expenses = Column(Numeric(12, 2), nullable=False, default=0.00) # Potentially aggregate
+    income = Column(Numeric(12, 2), nullable=False, default=0.00) # Potentially aggregate
+    operating_income = Column(Numeric(12, 2), nullable=False, default=0.00)
+    tax_collection = Column(Numeric(12, 2), nullable=False, default=0.00)
+    reserve_collection = Column(Numeric(12, 2), nullable=False, default=0.00)
+    net_income = Column(Numeric(12, 2), nullable=False, default=0.00)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
