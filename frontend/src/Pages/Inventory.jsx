@@ -70,6 +70,7 @@ const Inventory = () => {
 
   // Add the payment method options
   const PAYMENT_METHODS = [
+    { value: "Select Option", label: "Select Option" },
     { value: 'Credit', label: 'Credit' },
     { value: 'Cash', label: 'Cash' },
     { value: 'USD', label: 'USD' },
@@ -420,6 +421,7 @@ const Inventory = () => {
           setSaleData={setSaleData}
           saleData={saleData}
           handleSell = {handleSell}
+          setSellModalOpen = {setSellModalOpen}
         />
       )}
 
