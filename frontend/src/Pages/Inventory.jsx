@@ -20,7 +20,6 @@ const Inventory = () => {
     'CATEGORY',
     'BASE COST',
     'SHIPMENT COST',
-    'RENTABILITY',
     'OBT METHOD',
     'LOCATION',
     'DESCRIPTION'
@@ -506,14 +505,6 @@ const Inventory = () => {
                         />
                         <TableCol text={item.base_cost ? `$${Number(item.base_cost).toFixed(2)}` : 'N/A'} key={`cost-${item.sku}`}/>
                         <TableCol text={formatCurrency(item.shipment_cost)} key={`shipment-cost-${item.sku}`}/>
-                        <TableCol 
-                          text={
-                            <div className={`font-bold ${item.rentability_percentage >= 20 ? 'text-green-600' : item.rentability_percentage >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
-                              {`${item.rentability_percentage}%`}
-                            </div>
-                          } 
-                          key={`rentability-${item.sku}`}
-                        />
                         <TableCol text={item.obtained_method} key={`ob_me-${item.sku}`}/>
                         <TableCol text={item.location || "Colombia"} key={`location-${item.sku}`}/>
                         <TableCol text={item.description} key={`desc-${item.sku}`}/>
