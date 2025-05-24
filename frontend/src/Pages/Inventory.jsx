@@ -33,7 +33,8 @@ const Inventory = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
-  const loading = apiLoading;
+  // const loading = apiLoading; // Remove or rename this, as we'll use a more comprehensive loading state
+  const [inventoryLoading, setInventoryLoading] = useState(true); // <--- NEW STATE FOR INVENTORY LOADING
   const [sort, setSort] = useState({ keyToSort: 'SKU', direction: 'asc' })
   
   const [modalData, setModalData] = useState({
@@ -171,6 +172,7 @@ const Inventory = () => {
   };
 
   const fetchProducts = async () => {
+    setInventoryLoading(true); // <--- Set loading to true at the start
     try {
       // Get all products
       const productsData = await getProducts();
@@ -218,6 +220,8 @@ const Inventory = () => {
         type: 'error',
         message: `Failed to load data: ${error.message}`
       });
+    } finally {
+      setInventoryLoading(false); // <--- Set loading to false after all operations
     }
   };
 
@@ -237,18 +241,19 @@ const Inventory = () => {
         setCategories(mappedCategories);
         
         // Fetch products using the new function
-        await fetchProducts();
+        await fetchProducts(); // This function now manages its own loading state
       } catch (error) {
         console.error('Error loading data:', error);
         setSubmitStatus({
           type: 'error',
           message: `Failed to load data: ${error.message}`
         });
+        setInventoryLoading(false); // Ensure loading is false on error during initial load
       }
     };
 
     loadData();
-  }, [getProducts, getCategories]);
+  }, [getProducts, getCategories]); // Dependencies for initial load
 
   // Filter products when category or location changes
   const handleCategoryChange = (e) => {
@@ -466,7 +471,8 @@ const Inventory = () => {
           </div>
         </div>
         
-        {loading ? (
+        {/* Use inventoryLoading here */}
+        {inventoryLoading ? ( 
           <div className="text-center py-8">
             <p>Loading inventory data...</p>
           </div>
@@ -493,7 +499,7 @@ const Inventory = () => {
                   </TableRow>
                 </thead>
                 <tbody className='font-Josefin align-middle'>
-                  {products.length > 0 && !loading ? (
+                  {products.length > 0 ? ( // Removed !loading here, as inventoryLoading is now the main check
                     getSortedArray(getPaginatedProducts(products)).map(item => (
                       <TableRow key={item.sku}>            
                         <TableCol text={item.sku} key={`sku-${item.sku}`}/>
@@ -545,7 +551,7 @@ const Inventory = () => {
                         </TableCol>
                       </TableRow>
                     ))
-                  ) : (!loading && 
+                  ) : (
                     <TableRow>
                       <TableCol colSpan="13" className="text-center py-4">
                         <div>No products found in this category.</div>
