@@ -449,6 +449,12 @@ const ProductForm = () => {
                 </div>
               )}
             </div>
+                      
+          <ImageInput
+            name="image"
+            title="Image"
+            onChange={handleFormChange}
+          />
         </div>
 
         <div className="flex flex-col">
@@ -517,12 +523,6 @@ const ProductForm = () => {
             onChange={handleFormChange}
             min="1"
             required
-          />
-          
-          <ImageInput
-            name="image"
-            title="Image"
-            onChange={handleFormChange}
           />
         </div>
 

@@ -21,7 +21,7 @@ const ImageInput = ({name, title, onChange}) => {
   return (
     <div className='grid my-3 p-3 items-center'>
       <label 
-        className='text-secondaryBlue font-Mulish font-black text-2xl' 
+        className='text-secondaryBlue font-Mulish font-black text-xl' 
         htmlFor={name}
       >
         {title}
