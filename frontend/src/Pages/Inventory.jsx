@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react'; // Import useCallback
 import { Link } from 'react-router-dom';
 import TableRow from '../Components/TableRow/TableRow';
 import TableCol from '../Components/TableCol/TableCol';
@@ -8,6 +8,7 @@ import InputSelect from '../Components/SelectInput/InputSelect';
 import useApi from '../hooks/useApi';
 import Caret from '../Components/Caret/Caret';
 import SellModal from '../Components/SellModal/SellModal';
+import TextInput from '../Components/TextInput/TextInput';
 
 const ITEMS_PER_PAGE = 200;
 
@@ -23,19 +24,18 @@ const Inventory = () => {
     'OBT METHOD',
     'LOCATION',
     'DESCRIPTION'
-  ]
+  ];
 
   const { loading: apiLoading, error: apiError, getProducts, getCategories, deleteProduct } = useApi();
   
-  const [products, setProducts] = useState([]);
-  const [allProducts, setAllProducts] = useState([]); // Store all products to use for filtering
+  const [allProducts, setAllProducts] = useState([]); // Store all fetched products
+  const [displayedProducts, setDisplayedProducts] = useState([]); // Products currently shown after all filters
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
-  // const loading = apiLoading; // Remove or rename this, as we'll use a more comprehensive loading state
-  const [inventoryLoading, setInventoryLoading] = useState(true); // <--- NEW STATE FOR INVENTORY LOADING
-  const [sort, setSort] = useState({ keyToSort: 'SKU', direction: 'asc' })
+  const [inventoryLoading, setInventoryLoading] = useState(true);
+  const [sort, setSort] = useState({ keyToSort: 'SKU', direction: 'asc' });
   
   const [modalData, setModalData] = useState({
     open: false,
@@ -58,17 +58,17 @@ const Inventory = () => {
     { value: 'USA', label: 'USA' }
   ];
 
-  // Add state for sell modal
   const [sellModalOpen, setSellModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [saleData, setSaleData] = useState({
     sale_price: '',
     payment_method: '',
-    sale_date: new Date().toISOString().split('T')[0], // Default to today's date
+    sale_date: new Date().toISOString().split('T')[0],
     notes: ''
   });
 
-  // Add the payment method options
+  const [nameToSearch, setNameToSearch] = useState(""); // Renamed for clarity
+
   const PAYMENT_METHODS = [
     { value: "Select Option", label: "Select Option" },
     { value: 'Credit', label: 'Credit' },
@@ -77,108 +77,62 @@ const Inventory = () => {
     { value: 'Trade', label: 'Trade' },
   ];
 
-  // Add sell handler
   const handleSell = async () => {
     try {
-      // Validate required fields
       if (!saleData.sale_price) {
-        setSubmitStatus({
-          type: 'error',
-          message: 'Sale price is required'
-        });
+        setSubmitStatus({ type: 'error', message: 'Sale price is required' });
         return;
       }
-      
       if (!saleData.payment_method) {
-        setSubmitStatus({
-          type: 'error',
-          message: 'Payment method is required'
-        });
+        setSubmitStatus({ type: 'error', message: 'Payment method is required' });
         return;
       }
-
       if (!saleData.sale_date) {
-        setSubmitStatus({
-          type: 'error',
-          message: 'Sale date is required'
-        });
+        setSubmitStatus({ type: 'error', message: 'Sale date is required' });
         return;
       }
 
-      // Format the date as ISO string with time
       const saleDate = new Date(saleData.sale_date);
-      saleDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+      saleDate.setHours(12, 0, 0, 0);
       
       const response = await fetch(`${import.meta.env.VITE_API_URL}/products/${selectedProduct.product_id}/sell`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...saleData,
-          sale_date: saleDate.toISOString(),
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...saleData, sale_date: saleDate.toISOString() }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Refresh product list
-        fetchProducts();
+        fetchProducts(); // Re-fetch products to update inventory
         setSellModalOpen(false);
-        setSaleData({ 
-          sale_price: '', 
-          payment_method: '', 
-          sale_date: new Date().toISOString().split('T')[0],
-          notes: '' 
-        });
-        setSubmitStatus({
-          type: 'success',
-          message: 'Product sold successfully'
-        });
+        setSaleData({ sale_price: '', payment_method: '', sale_date: new Date().toISOString().split('T')[0], notes: '' });
+        setSubmitStatus({ type: 'success', message: 'Product sold successfully' });
       } else {
-        // Extract error message from response
         const errorMessage = data.detail || 'Unknown error occurred';
         throw new Error(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
       }
     } catch (error) {
-      setSubmitStatus({
-        type: 'error',
-        message: `Failed to sell product: ${error.message}`
-      });
+      setSubmitStatus({ type: 'error', message: `Failed to sell product: ${error.message}` });
       console.error('Error selling product:', error);
     }
   };
 
-  // Handle opening/closing the image modal
   const modalHandler = (productId, productName) => {
     if (modalData.open === false && productId) {
       const baseUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'http://127.0.0.1:8000';
       const imageUrl = `${baseUrl}/products/${productId}/image`;
-      setModalData({
-        open: true,
-        img: imageUrl,
-        caption: productName || 'Product Image',
-        productId: productId
-      });
+      setModalData({ open: true, img: imageUrl, caption: productName || 'Product Image', productId: productId });
     } else {
-      setModalData({
-        open: false,
-        img: '',
-        caption: '',
-        productId: null
-      });
+      setModalData({ open: false, img: '', caption: '', productId: null });
     }
   };
 
   const fetchProducts = async () => {
-    setInventoryLoading(true); // <--- Set loading to true at the start
+    setInventoryLoading(true);
     try {
-      // Get all products
       const productsData = await getProducts();
-      console.log('Initial products loaded:', productsData.length);
       
-      // For each product, fetch the current price point
       const productsWithPricing = await Promise.all(productsData.map(async (product) => {
         try {
           const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/products/${product.product_id}/price-points/?current_only=true&limit=1`);
@@ -193,212 +147,170 @@ const Inventory = () => {
               };
             }
           }
-          return {
-            ...product,
-            base_cost: null,
-            selling_price: null,
-            shipment_cost: null
-          };
+          return { ...product, base_cost: null, selling_price: null, shipment_cost: null };
         } catch (error) {
           console.error(`Error fetching price for product ${product.product_id}:`, error);
-          return {
-            ...product,
-            base_cost: null,
-            selling_price: null,
-            shipment_cost: null
-          };
+          return { ...product, base_cost: null, selling_price: null, shipment_cost: null };
         }
       }));
       
-      console.log('Products with pricing:', productsWithPricing.length);
-      setAllProducts(productsWithPricing);
-      setProducts(productsWithPricing); // Initially show all products
+      setAllProducts(productsWithPricing); // Store all products here
       setSubmitStatus({ type: '', message: '' });
     } catch (error) {
       console.error('Error loading data:', error);
-      setSubmitStatus({
-        type: 'error',
-        message: `Failed to load data: ${error.message}`
-      });
+      setSubmitStatus({ type: 'error', message: `Failed to load data: ${error.message}` });
     } finally {
-      setInventoryLoading(false); // <--- Set loading to false after all operations
+      setInventoryLoading(false);
     }
   };
 
-  // Load products and categories on component mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Get all categories
         const categoriesData = await getCategories();
         const mappedCategories = [
           { value: 'all', label: 'All Categories' },
-          ...categoriesData.map(cat => ({
-            value: cat.category_id.toString(),
-            label: cat.category_name
-          }))
+          ...categoriesData.map(cat => ({ value: cat.category_id.toString(), label: cat.category_name }))
         ];
         setCategories(mappedCategories);
-        
-        // Fetch products using the new function
-        await fetchProducts(); // This function now manages its own loading state
+        await fetchProducts();
       } catch (error) {
         console.error('Error loading data:', error);
-        setSubmitStatus({
-          type: 'error',
-          message: `Failed to load data: ${error.message}`
-        });
-        setInventoryLoading(false); // Ensure loading is false on error during initial load
+        setSubmitStatus({ type: 'error', message: `Failed to load data: ${error.message}` });
+        setInventoryLoading(false);
       }
     };
-
     loadData();
-  }, [getProducts, getCategories]); // Dependencies for initial load
+  }, [getProducts, getCategories]);
 
-  // Filter products when category or location changes
-  const handleCategoryChange = (e) => {
-    const categoryId = e.target.value;
-    setSelectedCategory(categoryId);
-    filterProducts(categoryId, selectedLocation);
-  };
+  // Combined filter function using useCallback for memoization
+  const applyFilters = useCallback(() => {
+    let currentFilteredProducts = [...allProducts]; // Start with all products
 
-  const handleLocationChange = (e) => {
-    const location = e.target.value;
-    setSelectedLocation(location);
-    filterProducts(selectedCategory, location);
-  };
-
-  const filterProducts = (categoryId, location) => {
-    let filteredProducts = allProducts;
+    // Apply name search filter
+    if (nameToSearch.trim() !== '') { //
+      const lowerCaseSearchText = nameToSearch.toLowerCase(); //
+      currentFilteredProducts = currentFilteredProducts.filter(item => //
+        item.name && typeof item.name === 'string' && item.name.toLowerCase().includes(lowerCaseSearchText) //
+      );
+    }
 
     // Apply category filter
-    if (categoryId !== 'all') {
-      filteredProducts = filteredProducts.filter(product => 
-        product.category_id.toString() === categoryId
+    if (selectedCategory !== 'all') { //
+      currentFilteredProducts = currentFilteredProducts.filter(product =>  //
+        product.category_id?.toString() === selectedCategory //
       );
     }
 
     // Apply location filter
-    if (location !== 'all') {
-      filteredProducts = filteredProducts.filter(product => 
-        product.location === location
+    if (selectedLocation !== 'all') { //
+      currentFilteredProducts = currentFilteredProducts.filter(product => //
+        product.location === selectedLocation //
       );
     }
 
-    setProducts(filteredProducts);
+    setDisplayedProducts(currentFilteredProducts); // Update the products to be displayed
+  }, [allProducts, nameToSearch, selectedCategory, selectedLocation]); // Dependencies for memoization
+
+  // Run applyFilters whenever filter dependencies change
+  useEffect(() => {
+    applyFilters();
+  }, [allProducts, nameToSearch, selectedCategory, selectedLocation, applyFilters]); //
+
+
+  const handleCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
   };
 
-  // Show delete confirmation dialog
+  const handleLocationChange = (e) => {
+    setSelectedLocation(e.target.value);
+  };
+
   const showDeleteConfirmation = (item) => {
-    setDeleteConfirmation({
-      show: true,
-      item: {...item}
-    });
+    setDeleteConfirmation({ show: true, item: {...item} });
   };
 
-  // Hide delete confirmation dialog
   const hideDeleteConfirmation = () => {
-    setDeleteConfirmation({
-      show: false,
-      item: {}
-    });
+    setDeleteConfirmation({ show: false, item: {} });
   };
 
-  // Handle product deletion
   const handleDeleteProduct = async () => {
     try {
       const productId = deleteConfirmation.item.product_id;
-      
-      console.log(deleteConfirmation.item)
-
       if (!productId) return;
       
       const result = await deleteProduct(productId);
       
-      // Remove the product from both states
-      const updatedProducts = allProducts.filter(product => product.product_id !== productId);
-      setAllProducts(updatedProducts);
+      // Update allProducts directly after deletion
+      setAllProducts(prevProducts => prevProducts.filter(product => product.product_id !== productId));
       
-      // Update filtered products based on current category
-      if (selectedCategory === 'all') {
-        setProducts(updatedProducts);
-      } else {
-        setProducts(updatedProducts.filter(product => 
-          product.category_id.toString() === selectedCategory
-        ));
-      }
-      
-      setSubmitStatus({
-        type: 'success',
-        message: result.message || 'Product successfully deleted'
-      });
-      
-      // Hide the confirmation dialog
+      setSubmitStatus({ type: 'success', message: result.message || 'Product successfully deleted' });
       hideDeleteConfirmation();
       
     } catch (error) {
       console.error('Error deleting product:', error);
-      setSubmitStatus({
-        type: 'error',
-        message: `Failed to delete product: ${error.message}`
-      });
-      
-      // Hide the confirmation dialog
+      setSubmitStatus({ type: 'error', message: `Failed to delete product: ${error.message}` });
       hideDeleteConfirmation();
     }
   };
 
-  // Format currency
   const formatCurrency = (value) => {
     if (value === undefined || value === null) return '-';
     return `$${parseFloat(value).toFixed(2)}`;
   };
   
-  // Display any API errors
   useEffect(() => {
     if (apiError) {
-      setSubmitStatus({
-        type: 'error',
-        message: apiError
-      });
+      setSubmitStatus({ type: 'error', message: apiError });
     }
   }, [apiError]);
 
-  // Sort Functionality
   const handleSortClick = (header) => {
     setSort({
       keyToSort: header,
-      direction: 
-        header === sort.keyToSort ? sort.direction === 'asc' ? 'desc' : 'asc' : 'desc'
-    })
-  }
-
-  const getSortedArray = (arrayToSort) => {
-    if (sort.direction === 'asc') {
-      return arrayToSort.sort((a, b) => (a[sort.keyToSort.toLocaleLowerCase()] > b[sort.keyToSort.toLocaleLowerCase()] ? 1 : -1))
-    } else {
-      return arrayToSort.sort((a, b) => (a[sort.keyToSort.toLocaleLowerCase()] > b[sort.keyToSort.toLocaleLowerCase()] ? -1 : 1))
-    }
-  }
-
-  // Calculate paginated products
-  const getPaginatedProducts = (products) => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return products.slice(startIndex, endIndex);
+      direction: header === sort.keyToSort ? (sort.direction === 'asc' ? 'desc' : 'asc') : 'desc'
+    });
   };
 
-  // Update total pages when products change
-  useEffect(() => {
-    const newTotalPages = Math.ceil(products.length / ITEMS_PER_PAGE);
-    console.log('Products length:', products.length);
-    console.log('Total pages:', newTotalPages);
-    setTotalPages(newTotalPages);
-    // Reset to first page when products change
-    setCurrentPage(1);
-  }, [products]);
+  const getSortedArray = (arrayToSort) => {
+    if (!arrayToSort || arrayToSort.length === 0) return [];
+    
+    // Create a shallow copy to avoid modifying the original array during sort
+    const sortableArray = [...arrayToSort]; 
 
-  // Handle page change
+    return sortableArray.sort((a, b) => {
+      const aValue = a[sort.keyToSort.toLocaleLowerCase()];
+      const bValue = b[sort.keyToSort.toLocaleLowerCase()];
+
+      if (aValue === null || aValue === undefined) return sort.direction === 'asc' ? 1 : -1;
+      if (bValue === null || bValue === undefined) return sort.direction === 'asc' ? -1 : 1;
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sort.direction === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+      }
+      
+      if (aValue > bValue) return sort.direction === 'asc' ? 1 : -1;
+      if (aValue < bValue) return sort.direction === 'asc' ? -1 : 1;
+      return 0;
+    });
+  };
+
+  const getPaginatedProducts = (productsToPaginate) => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return productsToPaginate.slice(startIndex, endIndex);
+  };
+
+  const handleNameSearch = (e) => {
+    setNameToSearch(e.target.value);
+  };
+
+  useEffect(() => {
+    const newTotalPages = Math.ceil(displayedProducts.length / ITEMS_PER_PAGE); // Use displayedProducts here
+    setTotalPages(newTotalPages);
+    setCurrentPage(1);
+  }, [displayedProducts]); // Recalculate total pages when displayed products change
+
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
@@ -407,7 +319,6 @@ const Inventory = () => {
     <>
       <ModalImage data={modalData} handler={modalHandler} />
       
-      {/* Delete Confirmation Modal */}
       {deleteConfirmation.show && (
         <DeleteItemModal 
           deleteConfirmation={deleteConfirmation} 
@@ -417,15 +328,14 @@ const Inventory = () => {
         />
       )}
       
-      {/* Sell Modal */}
       {sellModalOpen && selectedProduct && (
         <SellModal 
-          PAYMENT_METHODS = {PAYMENT_METHODS}
-          selectedProduct = {selectedProduct}
+          PAYMENT_METHODS={PAYMENT_METHODS}
+          selectedProduct={selectedProduct}
           setSaleData={setSaleData}
           saleData={saleData}
-          handleSell = {handleSell}
-          setSellModalOpen = {setSellModalOpen}
+          handleSell={handleSell}
+          setSellModalOpen={setSellModalOpen}
         />
       )}
 
@@ -436,10 +346,18 @@ const Inventory = () => {
           </div>
         )}
         
-        {/* Category and Location Filters */}
         <div className="w-11/12 mx-auto max-w-7xl mb-6">
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-3 md:grid-rows-2 gap-4">
             <div className="max-w-96">
+              <TextInput
+                name="productName"
+                title="Product Name"
+                value={nameToSearch} // Use nameToSearch state
+                onChange={handleNameSearch}
+                placeholder='Name'
+              />
+            </div>
+            <div className="row-start-2 max-w-96">
               <InputSelect 
                 name="categoryFilter"
                 title="Category"
@@ -448,7 +366,7 @@ const Inventory = () => {
                 onChange={handleCategoryChange}
               />
             </div>
-            <div className="max-w-96">
+            <div className="row-start-2 max-w-96">
               <InputSelect 
                 name="locationFilter"
                 title="Location"
@@ -457,10 +375,12 @@ const Inventory = () => {
                 onChange={handleLocationChange}
               />
             </div>
-            <div className="flex justify-end items-center gap-4">
+            <div className='flex justify-center items-center col-start-3'>
               <div className="text-secondaryBlue font-semibold">
-                {products.length} products found
+                {displayedProducts.length} products found
               </div>
+            </div>
+            <div className="flex justify-center items-center row-start-2 gap-4">
               <Link 
                 to="/statistics" 
                 className="bg-secondaryBlue text-white px-4 py-2 rounded-md hover:bg-blue-700"
@@ -471,7 +391,6 @@ const Inventory = () => {
           </div>
         </div>
         
-        {/* Use inventoryLoading here */}
         {inventoryLoading ? ( 
           <div className="text-center py-8">
             <p>Loading inventory data...</p>
@@ -499,8 +418,8 @@ const Inventory = () => {
                   </TableRow>
                 </thead>
                 <tbody className='font-Josefin align-middle'>
-                  {products.length > 0 ? ( // Removed !loading here, as inventoryLoading is now the main check
-                    getSortedArray(getPaginatedProducts(products)).map(item => (
+                  {displayedProducts.length > 0 ? ( 
+                    getSortedArray(getPaginatedProducts(displayedProducts)).map(item => ( // Use displayedProducts here
                       <TableRow key={item.sku}>            
                         <TableCol text={item.sku} key={`sku-${item.sku}`}/>
                         <TableCol text={item.name} key={`name-${item.sku}`}/>
@@ -554,7 +473,7 @@ const Inventory = () => {
                   ) : (
                     <TableRow>
                       <TableCol colSpan="13" className="text-center py-4">
-                        <div>No products found in this category.</div>
+                        <div>No products found.</div>
                       </TableCol>
                     </TableRow>
                   )}
@@ -562,7 +481,6 @@ const Inventory = () => {
               </table>
             </div>
 
-            {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center mt-6 gap-2">
                 <button
