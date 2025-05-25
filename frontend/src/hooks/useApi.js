@@ -36,13 +36,16 @@ export const useApi = () => {
         ? undefined // Let the browser set the correct Content-Type with boundary
         : {
             'Accept': 'application/json',
+            'Content-Type': 'application/json',
             ...(options.headers || {})
           };
       
       const response = await fetch(url, {
         method: options.method || 'GET',
         headers,
-        body: options.body
+        body: options.body,
+        credentials: 'include',
+        mode: 'cors'  // Explicitly set CORS mode
       });
       
       if (!response.ok) {
@@ -74,14 +77,14 @@ export const useApi = () => {
           errorDetail = errorText || `Error ${response.status}`;
         }
         
-        console.log('API Error Detail:', errorDetail);
+        console.error('API Error:', errorDetail);
         throw new Error(errorDetail);
       }
       
       const data = await response.json();
-      console.log('API Response Data:', data);
       return data;
     } catch (err) {
+      console.error('API Error:', err);
       setError(err.message);
       throw err;
     } finally {

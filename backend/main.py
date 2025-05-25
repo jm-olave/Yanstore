@@ -30,13 +30,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS - Simplified version
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Temporarily allow all origins for debugging
-    allow_credentials=False,  # Changed to False since we're using allow_origins=["*"]
-    allow_methods=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://stupendous-mermaid-4ecc91.netlify.app"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Initialize database tables on startup
@@ -710,7 +714,15 @@ def create_profit_and_loss_statement(
     previous_pnl = db.query(models.ProfitAndLoss).filter(models.ProfitAndLoss.month == previous_month_for_query).first()
     
     db_beginning_inventory_value = previous_pnl.ending_inventory_value if previous_pnl else Decimal("0.0")
+    
+    # Calculate ending inventory value
     db_ending_inventory_value = db_beginning_inventory_value + db_purchases_colombia + db_purchases_usa - db_cost_of_sales
+
+    # If ending inventory is negative, adjust cost of sales to prevent negative inventory
+    if db_ending_inventory_value < 0:
+        # Adjust cost of sales to prevent negative inventory
+        db_cost_of_sales = db_beginning_inventory_value + db_purchases_colombia + db_purchases_usa
+        db_ending_inventory_value = Decimal("0.0")
 
     # Step 7: Save to Database (Create or Update)
     existing_pnl = db.query(models.ProfitAndLoss).filter(models.ProfitAndLoss.month == statement_month_date).first()
