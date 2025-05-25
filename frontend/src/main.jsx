@@ -12,6 +12,7 @@ import SupplierForm from './Pages/SupplierForm.jsx'
 import SalesHistory from './Pages/SalesHistory.jsx'
 import { validateEnv, logEnvironmentInfo } from './utils/validateEnv.js'
 import Statistics from './Pages/Statistics.jsx'
+import ProfitAndLossPage from './Pages/ProfitAndLossPage.jsx' // Import the new page
 import PageLayout from './Layouts/PageLayout.jsx'
 
 // Validate environment variables are correctly set
@@ -51,6 +52,9 @@ createRoot(document.getElementById('root')).render(
         </Route>
         <Route element={<FormLayout title={'STATISTICS'}/>}>
           <Route path='statistics' element={<Statistics/>}/>
+        </Route>
+        <Route element={<FormLayout title={'PROFIT & LOSS'}/>}>
+          <Route path='profit-and-loss' element={<ProfitAndLossPage/>}/>
         </Route>
       </Route>
      </Routes>

@@ -81,6 +81,47 @@ class PricePointResponse(PricePointBase):
     class Config:
         from_attributes = True
 
+# Schemas for Profit and Loss
+class ProfitAndLossBase(BaseModel):
+    month: date # This remains date as it's the type in the DB model and response
+    gross_sales: Decimal = Field(default=0.00, ge=0)
+    sales_discounts: Decimal = Field(default=0.00, ge=0)
+    # shipping_income removed
+    shipping_expense: Decimal = Field(default=0.00, ge=0)
+    gross_profit: Decimal = Field(default=0.00) # Can be negative
+    beginning_inventory_value: Decimal = Field(default=0.00, ge=0)
+    purchases_colombia: Decimal = Field(default=0.00, ge=0)
+    purchases_usa: Decimal = Field(default=0.00, ge=0)
+    ending_inventory_value: Decimal = Field(default=0.00, ge=0)
+    cost_of_sales: Decimal = Field(default=0.00, ge=0)
+    payroll_payments: Decimal = Field(default=0.00, ge=0)
+    # net_income_without_operations removed
+    costs_and_expenses: Decimal = Field(default=0.00, ge=0)
+    income: Decimal = Field(default=0.00, ge=0)
+    operating_income: Decimal = Field(default=0.00) # Can be negative
+    tax_collection: Decimal = Field(default=0.00, ge=0)
+    reserve_collection: Decimal = Field(default=0.00, ge=0)
+    net_income: Decimal = Field(default=0.00) # Can be negative
+
+class ProfitAndLossCreate(BaseModel): # No longer inherits from ProfitAndLossBase
+    month: str # Expects "YYYY-MM" format as per new requirement
+
+    @validator('month')
+    def validate_month_format(cls, value):
+        try:
+            datetime.strptime(value, "%Y-%m")
+            return value
+        except ValueError:
+            raise ValueError("Month must be in YYYY-MM format")
+
+class ProfitAndLossResponse(ProfitAndLossBase):
+    pnl_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class SaleBase(BaseModel):
     """Base schema for sale data"""
     sale_price: Decimal = Field(..., ge=0)
