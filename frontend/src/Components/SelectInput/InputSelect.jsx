@@ -12,8 +12,8 @@ const InputSelect = ({ name, options, title, value, form, onChange}) => {
 
   return (
     <div className='grid my-3 p-3 items-center'>
-      <label className='text-secondaryBlue font-Mulish font-black text-2xl ' htmlFor={InputSelectName}>{title}</label>
-      <select className='w-full p-1 text-black font-Mulish font-semibold text-xl border-4 border-secondaryBlue appearance-none bg-no-repeat bg-right bg-contain bg-downArrow focus:bg-upArrow'
+      <label className='text-secondaryBlue font-Mulish font-black text-xl ' htmlFor={InputSelectName}>{title}</label>
+      <select className='w-full p-1 text-black font-Mulish font-semibold text-lg border-4 border-secondaryBlue appearance-none bg-no-repeat bg-right bg-contain bg-downArrow focus:bg-upArrow'
               name={InputSelectName} 
               id={InputSelectName} 
               form={form}
