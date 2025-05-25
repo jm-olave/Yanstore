@@ -616,47 +616,141 @@ def delete_supplier(
             detail=f"An error occurred while deleting/deactivating the supplier: {str(e)}"
         )
 
+from decimal import Decimal
+from sqlalchemy.sql import func
+from sqlalchemy import and_
+
+# Helper function to parse month string and calculate date ranges
+def _parse_month_string_to_dates(month_str: str):
+    try:
+        year_int = int(month_str.split('-')[0])
+        month_int = int(month_str.split('-')[1])
+        if not (1 <= month_int <= 12):
+            raise ValueError("Month must be between 01 and 12.")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid month format. Expected YYYY-MM. Error: {e}")
+
+    start_date_of_month = date(year_int, month_int, 1)
+    
+    if month_int == 12:
+        end_date_of_month = date(year_int, month_int, 31)
+    else:
+        end_date_of_month = date(year_int, month_int + 1, 1) - timedelta(days=1)
+        
+    return year_int, month_int, start_date_of_month, end_date_of_month
+
 # Profit and Loss Endpoints
 @app.post("/profit-and-loss/", response_model=schema.ProfitAndLossResponse, status_code=201)
 def create_profit_and_loss_statement(
-    pnl_data: schema.ProfitAndLossCreate,
+    pnl_input: schema.ProfitAndLossCreate, # Changed from pnl_data
     db: Session = Depends(get_db)
 ):
     """
-    Create a new Profit and Loss statement for a specific month.
-    Ensures that only one P&L statement can exist per month.
+    Create or Update a Profit and Loss statement for a specific month with calculated values.
     """
-    # Check if a P&L statement for the given month already exists
-    existing_pnl = db.query(models.ProfitAndLoss).filter(
-        extract('year', models.ProfitAndLoss.month) == pnl_data.month.year,
-        extract('month', models.ProfitAndLoss.month) == pnl_data.month.month
-    ).first()
+    year_int, month_int, start_date_dt, end_date_dt = _parse_month_string_to_dates(pnl_input.month)
+    statement_month_date = date(year_int, month_int, 1)
+
+    # Initialize Decimal variables for calculations
+    db_gross_sales = Decimal("0.0")
+    db_cost_of_sales = Decimal("0.0")
+    db_shipping_expense = Decimal("0.0")
+
+    # Step 2 & 3: Fetch Sales Data & Product Costs
+    sales_in_month = db.query(
+        models.Sale,
+        models.PricePoint.base_cost,
+        models.PricePoint.shipment_cost
+    ).join(models.Product, models.Sale.product_id == models.Product.product_id)\
+    .outerjoin(models.PricePoint, models.Product.product_id == models.PricePoint.product_id)\
+    .filter(models.Sale.sale_date >= start_date_dt, models.Sale.sale_date <= end_date_dt)\
+    .all()
+
+    for sale_record, base_cost, shipment_cost in sales_in_month:
+        db_gross_sales += sale_record.sale_price if sale_record.sale_price is not None else Decimal("0.0")
+        db_cost_of_sales += base_cost if base_cost is not None else Decimal("0.0")
+        db_shipping_expense += shipment_cost if shipment_cost is not None else Decimal("0.0")
+
+    # Step 4: Calculations (Part 1 - Sales-based)
+    db_sales_discounts = Decimal("0.0") # As per requirement
+    net_sales = db_gross_sales - db_sales_discounts
+    db_gross_profit = net_sales - (db_cost_of_sales + db_shipping_expense)
+    
+    db_payroll_payments = Decimal("0.0") # As per requirement
+    operating_expenses = db_payroll_payments # Assuming only payroll for now
+    db_operating_income = db_gross_profit - operating_expenses
+    
+    db_tax_collection = Decimal("0.0") # As per requirement
+    db_reserve_collection = Decimal("0.0") # As per requirement
+    # Net income calculation adjusted as per typical accounting (reserve_collection not usually subtracted here unless it's an expense)
+    db_net_income = db_operating_income - db_tax_collection 
+    
+    db_costs_and_expenses = db_cost_of_sales + db_shipping_expense + db_payroll_payments
+    db_income = net_sales # Total income before COGS and other expenses
+
+    # Step 5: Fetch Purchase Data for the Month
+    db_purchases_colombia = db.query(func.sum(models.PricePoint.base_cost))\
+        .join(models.Product, models.PricePoint.product_id == models.Product.product_id)\
+        .filter(
+            models.Product.location == 'Colombia',
+            models.Product.purchase_date >= start_date_dt,
+            models.Product.purchase_date <= end_date_dt
+        ).scalar() or Decimal("0.0")
+
+    db_purchases_usa = db.query(func.sum(models.PricePoint.base_cost))\
+        .join(models.Product, models.PricePoint.product_id == models.Product.product_id)\
+        .filter(
+            models.Product.location == 'USA',
+            models.Product.purchase_date >= start_date_dt,
+            models.Product.purchase_date <= end_date_dt
+        ).scalar() or Decimal("0.0")
+
+    # Step 6: Inventory Valuation
+    previous_month_for_query = (start_date_dt.replace(day=1) - timedelta(days=1)).replace(day=1)
+    previous_pnl = db.query(models.ProfitAndLoss).filter(models.ProfitAndLoss.month == previous_month_for_query).first()
+    
+    db_beginning_inventory_value = previous_pnl.ending_inventory_value if previous_pnl else Decimal("0.0")
+    db_ending_inventory_value = db_beginning_inventory_value + db_purchases_colombia + db_purchases_usa - db_cost_of_sales
+
+    # Step 7: Save to Database (Create or Update)
+    existing_pnl = db.query(models.ProfitAndLoss).filter(models.ProfitAndLoss.month == statement_month_date).first()
 
     if existing_pnl:
-        raise HTTPException(
-            status_code=400,
-            detail=f"A Profit and Loss statement for {pnl_data.month.strftime('%Y-%m')} already exists."
-        )
+        pnl_to_save = existing_pnl
+    else:
+        pnl_to_save = models.ProfitAndLoss(month=statement_month_date)
+        db.add(pnl_to_save) # Add to session if new
 
+    pnl_to_save.gross_sales = db_gross_sales
+    pnl_to_save.sales_discounts = db_sales_discounts
+    pnl_to_save.shipping_expense = db_shipping_expense # shipping_income was removed
+    pnl_to_save.gross_profit = db_gross_profit
+    pnl_to_save.beginning_inventory_value = db_beginning_inventory_value
+    pnl_to_save.purchases_colombia = db_purchases_colombia
+    pnl_to_save.purchases_usa = db_purchases_usa
+    pnl_to_save.ending_inventory_value = db_ending_inventory_value
+    pnl_to_save.cost_of_sales = db_cost_of_sales
+    pnl_to_save.payroll_payments = db_payroll_payments
+    # net_income_without_operations was removed
+    pnl_to_save.costs_and_expenses = db_costs_and_expenses
+    pnl_to_save.income = db_income
+    pnl_to_save.operating_income = db_operating_income
+    pnl_to_save.tax_collection = db_tax_collection
+    pnl_to_save.reserve_collection = db_reserve_collection
+    pnl_to_save.net_income = db_net_income
+    
     try:
-        db_pnl = models.ProfitAndLoss(**pnl_data.dict())
-        db.add(db_pnl)
         db.commit()
-        db.refresh(db_pnl)
-        return db_pnl
-    except IntegrityError: # Catch other potential integrity errors, though month uniqueness is handled above
+        db.refresh(pnl_to_save)
+        return pnl_to_save
+    except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=400,
-            detail="Error creating Profit and Loss statement due to data integrity issues."
-        )
+        raise HTTPException(status_code=400, detail="Data integrity error during P&L save.")
     except Exception as e:
         db.rollback()
-        logger.error(f"Error creating P&L statement: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="An unexpected error occurred while creating the Profit and Loss statement."
-        )
+        logger.error(f"Unexpected error during P&L save for month {pnl_input.month}: {str(e)}")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred.")
+
 
 @app.get("/profit-and-loss/", response_model=List[schema.ProfitAndLossResponse])
 def list_profit_and_loss_statements(

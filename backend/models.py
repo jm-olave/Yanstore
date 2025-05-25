@@ -316,7 +316,6 @@ class ProfitAndLoss(Base):
     month = Column(Date, nullable=False)  # Consider unique=True or composite key for one P&L per month
     gross_sales = Column(Numeric(12, 2), nullable=False, default=0.00)
     sales_discounts = Column(Numeric(12, 2), nullable=False, default=0.00)
-    shipping_income = Column(Numeric(12, 2), nullable=False, default=0.00) # Income from shipping charged
     shipping_expense = Column(Numeric(12, 2), nullable=False, default=0.00) # Cost of shipping paid
     gross_profit = Column(Numeric(12, 2), nullable=False, default=0.00)
     beginning_inventory_value = Column(Numeric(12, 2), nullable=False, default=0.00)
@@ -325,7 +324,6 @@ class ProfitAndLoss(Base):
     ending_inventory_value = Column(Numeric(12, 2), nullable=False, default=0.00)
     cost_of_sales = Column(Numeric(12, 2), nullable=False, default=0.00)
     payroll_payments = Column(Numeric(12, 2), nullable=False, default=0.00)
-    net_income_without_operations = Column(Numeric(12, 2), nullable=False, default=0.00)
     costs_and_expenses = Column(Numeric(12, 2), nullable=False, default=0.00) # Potentially aggregate
     income = Column(Numeric(12, 2), nullable=False, default=0.00) # Potentially aggregate
     operating_income = Column(Numeric(12, 2), nullable=False, default=0.00)
