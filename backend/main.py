@@ -714,7 +714,14 @@ def create_profit_and_loss_statement(
     previous_month_for_query = (start_date_dt.replace(day=1) - timedelta(days=1)).replace(day=1)
     previous_pnl = db.query(models.ProfitAndLoss).filter(models.ProfitAndLoss.month == previous_month_for_query).first()
     
-    db_beginning_inventory_value = previous_pnl.ending_inventory_value if previous_pnl else Decimal("0.0")
+    # Calculate beginning inventory value from actual inventory
+    db_beginning_inventory_value = db.query(func.sum(models.PricePoint.base_cost))\
+        .join(models.Product, models.PricePoint.product_id == models.Product.product_id)\
+        .join(models.Inventory, models.Product.product_id == models.Inventory.product_id)\
+        .filter(
+            models.Inventory.quantity > 0,
+            models.Product.purchase_date < start_date_dt
+        ).scalar() or Decimal("0.0")
     
     # Calculate ending inventory value
     db_ending_inventory_value = db_beginning_inventory_value + db_purchases_colombia + db_purchases_usa - db_cost_of_sales
