@@ -34,8 +34,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
-        "https://stupendous-mermaid-4ecc91.netlify.app"
+        "http://localhost:5173",  # Local development
+        "https://stupendous-mermaid-4ecc91.netlify.app",  # Production frontend
+        "https://new-yanstore-api-c29287e7c68d.herokuapp.com"  # Production backend
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
