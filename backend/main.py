@@ -413,6 +413,45 @@ def update_product(
         db.rollback()
         raise HTTPException(status_code=400, detail="Invalid update data")
 
+@app.patch("/products/bulk-update-location", response_model=dict)
+def bulk_update_product_location(
+    request_data: schema.ProductBulkUpdateLocationRequest,
+    db: Session = Depends(get_db)
+):
+    """Bulk update location for a list of products."""
+    updated_count = 0
+    errors = []
+
+    products_to_update = db.query(models.Product).filter(
+        models.Product.product_id.in_(request_data.product_ids)
+    ).all()
+
+    found_product_ids = {p.product_id for p in products_to_update}
+
+    for product_id in request_data.product_ids:
+        if product_id not in found_product_ids:
+            errors.append({"product_id": product_id, "error": "Product not found"})
+
+    for product in products_to_update:
+        product.location = request_data.new_location
+        updated_count += 1
+
+    if updated_count > 0:
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            # Log the exception e
+            logger.error(f"Error during bulk update commit: {str(e)}")
+            # Return a more generic error to the client, or specific if appropriate
+            raise HTTPException(status_code=500, detail="An error occurred during the update.")
+
+    return {
+        "message": f"Bulk location update attempted. {updated_count} products updated.",
+        "updated_count": updated_count,
+        "errors": errors
+    }
+
 @app.get("/products/{product_id}/image")
 async def get_product_image(
     product_id: int,

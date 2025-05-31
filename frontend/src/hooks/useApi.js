@@ -164,6 +164,22 @@ export const useApi = () => {
   }, [fetchData]);
 
   /**
+   * Bulk update product locations
+   * @param {number[]} productIds - Array of product IDs
+   * @param {string} newLocation - The new location string
+   * @returns {Promise<Object>} Response data
+   */
+  const bulkUpdateProductLocation = useCallback(async (productIds, newLocation) => {
+    return fetchData('/products/bulk-update-location', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ product_ids: productIds, new_location: newLocation })
+    });
+  }, [fetchData]);
+
+  /**
    * Update a product
    * @param {number} id - Product ID
    * @param {Object} data - Update data
@@ -313,7 +329,8 @@ export const useApi = () => {
     createSupplier,
     getSuppliers,
     deleteSupplier,
-    updateSupplier
+    updateSupplier,
+    bulkUpdateProductLocation
   };
 };
 
