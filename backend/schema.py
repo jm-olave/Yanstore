@@ -178,6 +178,11 @@ class CategoryResponse(CategoryBase):
     class Config:
         form_attributes = True
 
+class ProductBulkUpdateLocationRequest(BaseModel):
+    """Schema for bulk updating product locations"""
+    product_ids: List[int]
+    new_location: str = Field(..., min_length=1)
+
 class InventoryResponse(BaseModel):
     """Schema for inventory responses"""
     inventory_id: int

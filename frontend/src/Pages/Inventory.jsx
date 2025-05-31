@@ -14,7 +14,10 @@ const ITEMS_PER_PAGE = 200;
 
 const Inventory = () => {
 
+  const [selectedProductIds, setSelectedProductIds] = useState([]);
+
   const tableHeaders = [
+    '', // For select all checkbox
     'SKU',
     'NAME',
     'CONDITION',
@@ -26,7 +29,7 @@ const Inventory = () => {
     'DESCRIPTION'
   ];
 
-  const { loading: apiLoading, error: apiError, getProducts, getCategories, deleteProduct } = useApi();
+  const { loading: apiLoading, error: apiError, getProducts, getCategories, deleteProduct, bulkUpdateProductLocation } = useApi();
   
   const [allProducts, setAllProducts] = useState([]); // Store all fetched products
   const [displayedProducts, setDisplayedProducts] = useState([]); // Products currently shown after all filters
@@ -69,6 +72,33 @@ const Inventory = () => {
 
   const [nameToSearch, setNameToSearch] = useState(""); // Renamed for clarity
 
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [newLocation, setNewLocation] = useState('');
+
+  // For Select All Checkbox on current page
+  const currentPagedProducts = getPaginatedProducts(displayedProducts);
+  const allOnPageSelected = currentPagedProducts.length > 0 && currentPagedProducts.every(p => selectedProductIds.includes(p.product_id));
+
+  const handleSelectAllOnPage = () => {
+    if (allOnPageSelected) {
+      // Deselect all on current page
+      const pageProductIds = currentPagedProducts.map(p => p.product_id);
+      setSelectedProductIds(prevSelected => prevSelected.filter(id => !pageProductIds.includes(id)));
+    } else {
+      // Select all on current page
+      const pageProductIds = currentPagedProducts.map(p => p.product_id);
+      setSelectedProductIds(prevSelected => [...new Set([...prevSelected, ...pageProductIds])]);
+    }
+  };
+
+  const handleSelectSingle = (productId, isSelected) => {
+    if (isSelected) {
+      setSelectedProductIds(prevSelected => prevSelected.filter(id => id !== productId));
+    } else {
+      setSelectedProductIds(prevSelected => [...prevSelected, productId]);
+    }
+  };
+
   const PAYMENT_METHODS = [
     { value: "Select Option", label: "Select Option" },
     { value: 'Credit', label: 'Credit' },
@@ -76,6 +106,37 @@ const Inventory = () => {
     { value: 'USD', label: 'USD' },
     { value: 'Trade', label: 'Trade' },
   ];
+
+  const modalLocations = locations.filter(loc => loc.value !== 'all'); // For the modal select
+
+  const handleBulkLocationUpdate = async () => {
+    if (!newLocation || newLocation === 'all') {
+      setSubmitStatus({ type: 'error', message: 'Please select a valid new location.' });
+      return;
+    }
+    // Consider adding a loading state specific to this operation if desired
+    // setSubmitStatus({ type: '', message: 'Updating locations...' }); // Optional: indicate processing
+
+    try {
+      const result = await bulkUpdateProductLocation(selectedProductIds, newLocation);
+      if (result.updated_count > 0 || result.message) { // Check if message indicates success even with 0 updates
+        setSubmitStatus({ type: 'success', message: result.message || `${result.updated_count} products updated successfully.` });
+        fetchProducts(); // Refresh products
+        setSelectedProductIds([]); // Clear selections
+        setIsLocationModalOpen(false); // Close modal
+        setNewLocation(''); // Reset new location
+      } else if (result.errors && result.errors.length > 0) {
+        const errorMessages = result.errors.map(err => `Product ID ${err.product_id}: ${err.error}`).join('; ');
+        setSubmitStatus({ type: 'error', message: `Update failed for some products: ${errorMessages}` });
+      } else {
+         // Fallback for unexpected success response structure
+        setSubmitStatus({ type: 'success', message: 'Bulk update process completed.' });
+      }
+    } catch (error) {
+      console.error('Error bulk updating product locations:', error);
+      setSubmitStatus({ type: 'error', message: `Failed to update locations: ${error.message}` });
+    }
+  };
 
   const handleSell = async () => {
     try {
@@ -318,6 +379,43 @@ const Inventory = () => {
   return (
     <>
       <ModalImage data={modalData} handler={modalHandler} />
+
+      {isLocationModalOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
+          <div className="relative p-8 bg-white w-full max-w-md m-auto flex-col flex rounded-lg shadow-lg">
+            <h2 className="text-2xl font-semibold mb-4">Update Location for Selected Products</h2>
+            <p className="mb-4 text-sm text-gray-700">
+              You have selected {selectedProductIds.length} product(s).
+            </p>
+            <InputSelect
+              name="newLocation"
+              title="New Location"
+              value={newLocation}
+              options={modalLocations} // Use filtered locations without "All Locations"
+              onChange={(e) => setNewLocation(e.target.value)}
+              className="mb-4"
+            />
+            <div className="flex justify-end gap-4 mt-6">
+              <button
+                onClick={() => {
+                  setIsLocationModalOpen(false);
+                  setNewLocation(''); // Reset location on cancel
+                }}
+                className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkLocationUpdate}
+                disabled={!newLocation || newLocation === 'all' || apiLoading} // Disable if no location selected or loading
+                className="px-4 py-2 bg-secondaryBlue text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+              >
+                {apiLoading ? 'Submitting...' : 'Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {deleteConfirmation.show && (
         <DeleteItemModal 
@@ -387,6 +485,13 @@ const Inventory = () => {
               >
                 View Statistics
               </Link>
+              <button
+                onClick={() => setIsLocationModalOpen(true)}
+                disabled={selectedProductIds.length === 0}
+                className="bg-accentOrange text-white px-4 py-2 rounded-md hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                Edit Selected Locations ({selectedProductIds.length})
+              </button>
             </div>
           </div>
         </div>
@@ -401,7 +506,16 @@ const Inventory = () => {
               <table className='w-full min-w-[800px]'>
                 <thead className='font-Mulish font-black text-secondaryBlue'>
                   <TableRow>
-                    {tableHeaders.map(header => (
+                    <TableCol key="select-all-header">
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-5 w-5 text-blue-600"
+                        checked={allOnPageSelected}
+                        onChange={handleSelectAllOnPage}
+                        disabled={currentPagedProducts.length === 0} // Disable if no products on page
+                      />
+                    </TableCol>
+                    {tableHeaders.slice(1).map(header => ( // Use slice(1) to skip the manually added first header for checkbox
                       <TableCol text={header} key={header} onClick={() => handleSortClick(header)} className='cursor-pointer'>
                         <div className='w-full h-full flex justify-between items-center gap-3'>
                           {header}
@@ -419,8 +533,18 @@ const Inventory = () => {
                 </thead>
                 <tbody className='font-Josefin align-middle'>
                   {displayedProducts.length > 0 ? ( 
-                    getSortedArray(getPaginatedProducts(displayedProducts)).map(item => ( // Use displayedProducts here
-                      <TableRow key={item.sku}>            
+                    getSortedArray(getPaginatedProducts(displayedProducts)).map(item => {
+                      const isSelected = selectedProductIds.includes(item.product_id);
+                      return (
+                      <TableRow key={item.sku}>
+                        <TableCol key={`select-${item.sku}`}>
+                          <input
+                            type="checkbox"
+                            className="form-checkbox h-5 w-5 text-blue-600"
+                            checked={isSelected}
+                            onChange={() => handleSelectSingle(item.product_id, isSelected)}
+                          />
+                        </TableCol>
                         <TableCol text={item.sku} key={`sku-${item.sku}`}/>
                         <TableCol text={item.name} key={`name-${item.sku}`}/>
                         <TableCol text={item.condition} key={`cond-${item.sku}`}/>
@@ -469,10 +593,11 @@ const Inventory = () => {
                           </button>
                         </TableCol>
                       </TableRow>
-                    ))
+                    )
+                  })
                   ) : (
                     <TableRow>
-                      <TableCol colSpan="13" className="text-center py-4">
+                      <TableCol colSpan="14" className="text-center py-4"> {/* Adjusted colSpan */}
                         <div>No products found.</div>
                       </TableCol>
                     </TableRow>
