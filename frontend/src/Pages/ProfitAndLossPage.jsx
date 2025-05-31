@@ -138,7 +138,7 @@ const ProfitAndLossPage = () => {
                 ))}
               </TableRow>
             </thead>
-            <tbody>
+            <tbody className='font-Josefin align-middle'>
               {pnlData.length > 0 ? (
                 pnlData.map((row, rowIndex) => (
                   <TableRow key={row.pnl_id || rowIndex} className="hover:bg-gray-50">
