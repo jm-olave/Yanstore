@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import useApi from '../hooks/useApi';
+import TableRow from '../Components/TableRow/TableRow';
+import TableCol from '../Components/TableCol/TableCol';
 
 const ProfitAndLossPage = () => {
   const [pnlData, setPnlData] = useState([]);
@@ -95,10 +97,10 @@ const ProfitAndLossPage = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Profit and Loss Statements</h1>
+      <h1 className="text-2xl font-bold mb-4 text-secondaryBlue">Profit and Loss Statements</h1>
 
       <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-        <h2 className="text-xl font-semibold mb-3">Generate P&L Statement</h2>
+        <h2 className="text-xl font-semibold mb-3 text-secondaryBlue">Generate P&L Statement</h2>
         <div className="flex items-center space-x-3">
           <input
             type="month"
@@ -129,25 +131,23 @@ const ProfitAndLossPage = () => {
       {!getLoading && !getError && (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-300">
-            <thead className="bg-gray-100">
-              <tr>
+            <thead className="font-Mulish font-black text-secondaryBlue">
+              <TableRow>
                 {tableHeaders.map(header => (
-                  <th key={header} className="p-3 border-b border-gray-300 text-left text-sm font-semibold text-gray-700">
-                    {header}
-                  </th>
+                  <TableCol key={header} text={header}/>
                 ))}
-              </tr>
+              </TableRow>
             </thead>
             <tbody>
               {pnlData.length > 0 ? (
                 pnlData.map((row, rowIndex) => (
-                  <tr key={row.pnl_id || rowIndex} className="hover:bg-gray-50">
+                  <TableRow key={row.pnl_id || rowIndex} className="hover:bg-gray-50">
                     {dataKeys.map(key => (
-                      <td key={key} className="p-3 border-b border-gray-200 text-sm text-gray-700">
+                      <TableCol key={key}>
                         {key === 'month' ? formatDate(row[key]) : formatNumber(row[key])}
-                      </td>
+                      </TableCol>
                     ))}
-                  </tr>
+                  </TableRow>
                 ))
               ) : (
                 <tr>
