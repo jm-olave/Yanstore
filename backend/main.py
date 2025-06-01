@@ -388,37 +388,13 @@ def get_product(
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-@app.patch("/products/{product_id}", response_model=schema.ProductResponse)
-def update_product(
-    product_id: int,
-    product_update: schema.ProductUpdate,
-    db: Session = Depends(get_db)
-):
-    """Update a product"""
-    db_product = db.query(models.Product).filter(
-        models.Product.product_id == product_id
-    ).first()
-    if not db_product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    
-    # Update only provided fields
-    for field, value in product_update.dict(exclude_unset=True).items():
-        setattr(db_product, field, value)
-    
-    try:
-        db.commit()
-        db.refresh(db_product)
-        return db_product
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=400, detail="Invalid update data")
-
 @app.patch("/products/bulk-update-location", response_model=dict)
 def bulk_update_product_location(
     request_data: schema.ProductBulkUpdateLocationRequest,
     db: Session = Depends(get_db)
 ):
     """Bulk update location for a list of products."""
+    logger.info(f"Received bulk_update_product_location request_data: {request_data}") # <-- ADD THIS LINE
     updated_count = 0
     errors = []
 
@@ -451,6 +427,32 @@ def bulk_update_product_location(
         "updated_count": updated_count,
         "errors": errors
     }
+@app.patch("/products/{product_id}", response_model=schema.ProductResponse)
+def update_product(
+    product_id: int,
+    product_update: schema.ProductUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update a product"""
+    db_product = db.query(models.Product).filter(
+        models.Product.product_id == product_id
+    ).first()
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Update only provided fields
+    for field, value in product_update.dict(exclude_unset=True).items():
+        setattr(db_product, field, value)
+    
+    try:
+        db.commit()
+        db.refresh(db_product)
+        return db_product
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid update data")
+
+
 
 @app.get("/products/{product_id}/image")
 async def get_product_image(

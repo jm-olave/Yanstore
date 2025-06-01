@@ -75,6 +75,13 @@ const Inventory = () => {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [newLocation, setNewLocation] = useState('');
 
+  // This is the CORRECT and ONLY definition of getPaginatedProducts
+  const getPaginatedProducts = (productsToPaginate) => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return productsToPaginate.slice(startIndex, endIndex);
+  };
+
   // For Select All Checkbox on current page
   const currentPagedProducts = getPaginatedProducts(displayedProducts);
   const allOnPageSelected = currentPagedProducts.length > 0 && currentPagedProducts.every(p => selectedProductIds.includes(p.product_id));
@@ -114,11 +121,13 @@ const Inventory = () => {
       setSubmitStatus({ type: 'error', message: 'Please select a valid new location.' });
       return;
     }
-    // Consider adding a loading state specific to this operation if desired
-    // setSubmitStatus({ type: '', message: 'Updating locations...' }); // Optional: indicate processing
 
     try {
-      const result = await bulkUpdateProductLocation(selectedProductIds, newLocation);
+      console.log('selectedProductIds:', selectedProductIds); // <-- Add this log
+      const integerProductIds = selectedProductIds.map(id => parseInt(id, 10));
+      console.log('integerProductIds:', integerProductIds); // <-- Add this log
+      
+      const result = await bulkUpdateProductLocation(integerProductIds, newLocation);
       if (result.updated_count > 0 || result.message) { // Check if message indicates success even with 0 updates
         setSubmitStatus({ type: 'success', message: result.message || `${result.updated_count} products updated successfully.` });
         fetchProducts(); // Refresh products
@@ -356,11 +365,6 @@ const Inventory = () => {
     });
   };
 
-  const getPaginatedProducts = (productsToPaginate) => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return productsToPaginate.slice(startIndex, endIndex);
-  };
 
   const handleNameSearch = (e) => {
     setNameToSearch(e.target.value);
@@ -488,7 +492,7 @@ const Inventory = () => {
               <button
                 onClick={() => setIsLocationModalOpen(true)}
                 disabled={selectedProductIds.length === 0}
-                className="bg-accentOrange text-white px-4 py-2 rounded-md hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="bg-secondaryBlue text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:cursor-not-allowed"
               >
                 Edit Selected Locations ({selectedProductIds.length})
               </button>
