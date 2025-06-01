@@ -48,7 +48,7 @@ const Inventory = () => {
   });
 
   const [deleteConfirmation, setDeleteConfirmation] = useState({
-    show: false,
+    show: false,  
     item: {},
   });
 
@@ -117,34 +117,76 @@ const Inventory = () => {
   const modalLocations = locations.filter(loc => loc.value !== 'all'); // For the modal select
 
   const handleBulkLocationUpdate = async () => {
-    if (!newLocation || newLocation === 'all') {
+    console.log('handleBulkLocationUpdate triggered. newLocation:', newLocation);
+    console.log('newLocation type:', typeof newLocation);
+    console.log('newLocation length:', newLocation?.length);
+    console.log('newLocation === "all":', newLocation === 'all');
+    console.log('!newLocation:', !newLocation);
+    
+    // More robust validation
+    if (!newLocation || newLocation.trim() === '' || newLocation === 'all') {
+      console.log('Validation failed - invalid location selection');
       setSubmitStatus({ type: 'error', message: 'Please select a valid new location.' });
       return;
     }
-
+  
+    // Additional validation to ensure we have selected products
+    if (!selectedProductIds || selectedProductIds.length === 0) {
+      console.log('Validation failed - no products selected');
+      setSubmitStatus({ type: 'error', message: 'Please select at least one product to update.' });
+      return;
+    }
+  
     try {
-      console.log('selectedProductIds:', selectedProductIds); // <-- Add this log
+      console.log('selectedProductIds:', selectedProductIds); 
       const integerProductIds = selectedProductIds.map(id => parseInt(id, 10));
-      console.log('integerProductIds:', integerProductIds); // <-- Add this log
+      console.log('integerProductIds:', integerProductIds);
+      console.log('Attempting to update with newLocation:', newLocation);
+      console.log('About to call bulkUpdateProductLocation...');
       
       const result = await bulkUpdateProductLocation(integerProductIds, newLocation);
-      if (result.updated_count > 0 || result.message) { // Check if message indicates success even with 0 updates
-        setSubmitStatus({ type: 'success', message: result.message || `${result.updated_count} products updated successfully.` });
+      console.log('bulkUpdateProductLocation result:', result);
+      
+      if (result.updated_count > 0 || result.message) {
+        setSubmitStatus({ 
+          type: 'success', 
+          message: result.message || `${result.updated_count} products updated successfully.` 
+        });
         fetchProducts(); // Refresh products
         setSelectedProductIds([]); // Clear selections
         setIsLocationModalOpen(false); // Close modal
         setNewLocation(''); // Reset new location
       } else if (result.errors && result.errors.length > 0) {
         const errorMessages = result.errors.map(err => `Product ID ${err.product_id}: ${err.error}`).join('; ');
-        setSubmitStatus({ type: 'error', message: `Update failed for some products: ${errorMessages}` });
+        setSubmitStatus({ 
+          type: 'error', 
+          message: `Update failed for some products: ${errorMessages}` 
+        });
       } else {
-         // Fallback for unexpected success response structure
-        setSubmitStatus({ type: 'success', message: 'Bulk update process completed.' });
+        // Fallback for unexpected success response structure
+        setSubmitStatus({ 
+          type: 'success', 
+          message: 'Bulk update process completed.' 
+        });
       }
     } catch (error) {
       console.error('Error bulk updating product locations:', error);
-      setSubmitStatus({ type: 'error', message: `Failed to update locations: ${error.message}` });
+      console.error('Error details:', error.message, error.stack);
+      setSubmitStatus({ 
+        type: 'error', 
+        message: `Failed to update locations: ${error.message}` 
+      });
     }
+  };
+  
+  // Also add this debugging function to check the InputSelect onChange
+  const handleLocationSelectChange = (e) => {
+    console.log('InputSelect onChange triggered');
+    console.log('e.target.value:', e.target.value);
+    console.log('e.target.value type:', typeof e.target.value);
+    setNewLocation(e.target.value);
+    console.log('After setNewLocation - newLocation should be:', e.target.value);
+    console.log('=== END InputSelect DEBUG ===');
   };
 
   const handleSell = async () => {
@@ -396,7 +438,7 @@ const Inventory = () => {
               title="New Location"
               value={newLocation}
               options={modalLocations} // Use filtered locations without "All Locations"
-              onChange={(e) => setNewLocation(e.target.value)}
+              onChange={handleLocationSelectChange}
               className="mb-4"
             />
             <div className="flex justify-end gap-4 mt-6">
