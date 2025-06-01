@@ -188,7 +188,12 @@ const Inventory = () => {
     console.log('InputSelect onChange triggered');
     console.log('e.target.value:', e.target.value);
     console.log('e.target.value type:', typeof e.target.value);
-    setNewLocation(e.target.value);
+
+    if (e.target.value === "Select Option") {
+      setSubmitStatus({ type: 'error', message: 'Select a valid location' });
+    } else {
+      setNewLocation(e.target.value);
+    }
     console.log('After setNewLocation - newLocation should be:', e.target.value);
     console.log('=== END InputSelect DEBUG ===');
   };
