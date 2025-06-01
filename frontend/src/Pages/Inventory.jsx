@@ -114,7 +114,11 @@ const Inventory = () => {
     { value: 'Trade', label: 'Trade' },
   ];
 
-  const modalLocations = locations.filter(loc => loc.value !== 'all'); // For the modal select
+  const filteredLocation = locations.filter(loc => loc.value !== 'all'); // For the modal select
+  const modalLocation = [
+    { value: "Select Option", label: "Select Option" },
+    ...filteredLocation
+  ]
 
   const handleBulkLocationUpdate = async () => {
     console.log('handleBulkLocationUpdate triggered. newLocation:', newLocation);
@@ -437,7 +441,7 @@ const Inventory = () => {
               name="newLocation"
               title="New Location"
               value={newLocation}
-              options={modalLocations} // Use filtered locations without "All Locations"
+              options={modalLocation} // Use filtered locations without "All Locations"
               onChange={handleLocationSelectChange}
               className="mb-4"
             />
