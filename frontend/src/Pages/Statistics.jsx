@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useApi from "../hooks/useApi";
+import MigrationButton from '../Components/MigrationButton/MigrationButton';
 
 const Statistics = () => {
   const { getProducts, getCategories } = useApi();
@@ -88,12 +89,15 @@ const Statistics = () => {
       {/* Header Section */}
       <div className="mb-8 flex justify-between items-center">
         <h2 className="text-2xl font-bold text-secondaryBlue">Statistics Overview</h2>
-        <Link 
-          to="/inventory"
-          className="bg-secondaryBlue text-white px-4 py-2 rounded-md hover:bg-blue-700"
-        >
-          Back to Inventory
-        </Link>
+        <div className="flex gap-4">
+          <MigrationButton />
+          <Link 
+            to="/inventory"
+            className="bg-secondaryBlue text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            Back to Inventory
+          </Link>
+        </div>
       </div>
 
       {/* Stats Grid */}

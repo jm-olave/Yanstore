@@ -151,6 +151,14 @@ export const useApi = () => {
   }, [fetchData]);
 
   /**
+   * Get all product instances
+   * @returns {Promise<Array>} Instances array
+   */
+  const getInstances = useCallback(() => {
+    return fetchData('/instances/');
+  }, [fetchData]);
+
+  /**
    * Create a product
    * @param {FormData} formData - Product form data
    * @returns {Promise<Object>} Created product
@@ -330,7 +338,8 @@ export const useApi = () => {
     getSuppliers,
     deleteSupplier,
     updateSupplier,
-    bulkUpdateProductLocation
+    bulkUpdateProductLocation,
+    getInstances
   };
 };
 

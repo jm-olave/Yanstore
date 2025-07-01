@@ -183,6 +183,19 @@ class ProductBulkUpdateLocationRequest(BaseModel):
     product_ids: List[int]
     new_location: str = Field(..., min_length=1)
 
+class ProductInstanceBase(BaseModel):
+    """Base schema for product instance data"""
+    product_id: int
+    base_cost: Decimal = Field(..., ge=0)
+    status: str = Field(..., pattern='^(available|sold|reserved)$')
+    purchase_date: Optional[date] = None
+    location: Optional[str] = Field(None, max_length=100)
+
+class ProductInstanceCreate(ProductInstanceBase):
+    """Schema for creating a new product instance"""
+    pass
+
+
 class InventoryResponse(BaseModel):
     """Schema for inventory responses"""
     inventory_id: int
@@ -209,10 +222,19 @@ class ProductResponse(ProductBase):
     total_cost: float = 0
     total_profit: float = 0
     sales_count: int = 0
-    inventory: Optional[InventoryResponse] = None
 
     class Config:
         orm_mode = True
+
+class ProductInstanceResponse(ProductInstanceBase):
+    """Schema for product instance responses"""
+    instance_id: int
+    created_at: datetime
+    updated_at: datetime
+    product: ProductResponse
+
+    class Config:
+        from_attributes = True
 
 class PriceHistoryResponse(BaseModel):
     """Schema for price history responses"""

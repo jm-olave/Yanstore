@@ -35,6 +35,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",  # Local development
+        "http://127.0.0.1:5173",  # Local development (alternative)
         "https://stupendous-mermaid-4ecc91.netlify.app",  # Production frontend
         "https://new-yanstore-api-c29287e7c68d.herokuapp.com"  # Production backend
     ],
@@ -162,7 +163,7 @@ async def create_product(
     purchase_date: str = Form(...),
     location: Optional[str] = Form(None),
     obtained_method: str = Form(...),
-    initial_quantity: Optional[int] = Form(1),
+    base_costs: List[float] = Form(...),
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
@@ -241,25 +242,16 @@ async def create_product(
         )
         db.add(db_product)
         db.flush()
-        db_inventory = models.Inventory(
-            product_id=db_product.product_id,
-            quantity=initial_quantity,
-            available_quantity=initial_quantity,
-            reserved_quantity=0,
-            reorder_point=1
-        )
-        db.add(db_inventory)
-        db.flush()
-        
-        # Create initial inventory transaction
-        transaction = models.InventoryTransaction(
-            inventory_id=db_inventory.inventory_id,
-            transaction_type="initial",
-            quantity=initial_quantity,
-            notes="Initial inventory setup",
-            created_by="system"
-        )
-        db.add(transaction)
+
+        for base_cost in base_costs:
+            db_instance = models.ProductInstance(
+                product_id=db_product.product_id,
+                base_cost=base_cost,
+                purchase_date=parsed_date,
+                location=location
+            )
+            db.add(db_instance)
+
         # Handle image if provided
         if image:
             try:
@@ -315,7 +307,7 @@ def get_products(
     """Get all products with optional filtering"""
     try:
         # Start with a query that includes a join with inventory
-        query = db.query(models.Product).outerjoin(models.Inventory)
+        query = db.query(models.Product).outerjoin(models.ProductInstance)
 
         # Apply filters if provided
         if category_id:
@@ -325,33 +317,6 @@ def get_products(
 
         # Get all products
         products = query.all()
-
-        # Create default inventory for products without inventory
-        for product in products:
-            if not product.inventory:
-                print(f"Creating inventory for product {product.product_id}")
-                inventory = models.Inventory(
-                    product_id=product.product_id,
-                    quantity=1,
-                    available_quantity=1,
-                    reserved_quantity=0,
-                    reorder_point=0
-                )
-                db.add(inventory)
-                try:
-                    db.commit()
-                    db.refresh(product)
-                except Exception as e:
-                    print(f"Error creating inventory: {e}")
-                    db.rollback()
-                    raise
-
-        # Refresh the products query to include new inventory
-        products = query.all()
-        
-        # Debug log
-        for product in products:
-            print(f"Product {product.product_id} inventory: {product.inventory}")
 
         return products
 
@@ -499,7 +464,7 @@ def delete_product(
     product_id: int,
     db: Session = Depends(get_db)
 ):
-    """Delete a product (marks it as inactive rather than removing it)"""
+    """Delete a product and all related objects from the database."""
     db_product = db.query(models.Product).filter(
         models.Product.product_id == product_id
     ).first()
@@ -508,20 +473,19 @@ def delete_product(
         raise HTTPException(status_code=404, detail="Product not found")
     
     try:
-        # Set is_active to False instead of actually deleting the record
-        db_product.is_active = False
+        product_name = db_product.name
+        db.delete(db_product)
         db.commit()
-        
         return {
-            "success": True, 
-            "message": f"Product {db_product.name} has been deactivated",
+            "success": True,
+            "message": f"Product '{product_name}' and all related data have been deleted.",
             "product_id": product_id
         }
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=500,
-            detail=f"An error occurred while deactivating the product: {str(e)}"
+            detail=f"An error occurred while deleting the product: {str(e)}"
         )
 
 
@@ -1054,9 +1018,9 @@ async def get_exchange_rates(base_currency: str = "USD"):
         # Fallback to approximate values
         return {"rates": {"COP": 4000, "EUR": 0.92, "GBP": 0.78}}
 
-@app.post("/products/{product_id}/sell", response_model=schema.SaleResponse)
+@app.post("/instances/{instance_id}/sell", response_model=schema.SaleResponse)
 def sell_product(
-    product_id: int,
+    instance_id: int,
     sale: schema.SaleCreate,
     db: Session = Depends(get_db)
 ):
@@ -1069,17 +1033,16 @@ def sell_product(
     """
     try:
         # Get product and inventory
-        product = db.query(models.Product).filter(models.Product.product_id == product_id).first()
-        if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
-            
-        inventory = (db.query(models.Inventory)
-            .filter(models.Inventory.product_id == product_id)
-            .first())
+        instance = db.query(models.ProductInstance).filter(models.ProductInstance.instance_id == instance_id).first()
+        if not instance:
+            raise HTTPException(status_code=404, detail="Product instance not found")
+        
+        if instance.status != 'available':
+            raise HTTPException(status_code=400, detail="Product instance is not available for sale")
             
         # Create sale record
         db_sale = models.Sale(
-            product_id=product_id,  # Use the path parameter
+            product_id=instance.product_id,
             sale_price=sale.sale_price,
             sale_date=sale.sale_date,
             payment_method=sale.payment_method,
@@ -1088,25 +1051,8 @@ def sell_product(
         db.add(db_sale)
         db.flush()
         
-        # Update inventory
-        if inventory:
-            if inventory.available_quantity < 1:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Product out of stock"
-                )
-            inventory.available_quantity -= 1
-            
-            # Create inventory transaction
-            transaction = models.InventoryTransaction(
-                inventory_id=inventory.inventory_id,
-                transaction_type="sale",
-                quantity=-1,
-                reference_id=str(db_sale.sale_id),
-                notes=f"Sale registered on {sale.sale_date}",
-                created_by="system"
-            )
-            db.add(transaction)
+        # Update instance status
+        instance.status = 'sold'
 
         # Check if update_financial_metrics function exists and update it if needed
         # If you have this function, make sure it uses product_id from the path parameter
@@ -1203,6 +1149,100 @@ def get_sale_details(
     
     return sale
 
+@app.get("/instances/", response_model=List[schema.ProductInstanceResponse])
+def get_all_instances(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    category_id: Optional[int] = None,
+    location: Optional[str] = None
+):
+    """Get all product instances with their associated product information"""
+    try:
+        # Start with a query that includes the product relationship
+        query = db.query(models.ProductInstance).join(models.Product)
+
+        # Apply filters if provided
+        if category_id:
+            query = query.filter(models.Product.category_id == category_id)
+        if location:
+            query = query.filter(models.ProductInstance.location == location)
+
+        # Get all instances with their products
+        instances = query.offset(skip).limit(limit).all()
+
+        return instances
+
+    except Exception as e:
+        print(f"Error in get_all_instances: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/migrate-products-to-instances/", response_model=dict)
+def migrate_products_to_instances(db: Session = Depends(get_db)):
+    """
+    Migration endpoint to create ProductInstance records for existing Products
+    that don't have corresponding instances.
+    """
+    try:
+        from datetime import date
+        from decimal import Decimal
+        
+        # Find all products that don't have ProductInstance records
+        products_without_instances = db.query(models.Product).outerjoin(
+            models.ProductInstance, models.Product.product_id == models.ProductInstance.product_id
+        ).filter(models.ProductInstance.instance_id.is_(None)).all()
+        
+        if not products_without_instances:
+            return {
+                "message": "No products need migration. All products already have instances.",
+                "migrated_count": 0,
+                "total_products": 0
+            }
+        
+        migrated_count = 0
+        error_count = 0
+        
+        for product in products_without_instances:
+            try:
+                # Try to get base cost from PricePoint
+                price_point = db.query(models.PricePoint).filter(
+                    models.PricePoint.product_id == product.product_id
+                ).order_by(models.PricePoint.created_at.desc()).first()
+                
+                base_cost = Decimal('0.00')
+                if price_point:
+                    base_cost = price_point.base_cost
+                
+                # Create ProductInstance
+                instance = models.ProductInstance(
+                    product_id=product.product_id,
+                    base_cost=base_cost,
+                    status='available',
+                    purchase_date=product.purchase_date or date.today(),
+                    location=product.location or 'Colombia'
+                )
+                
+                db.add(instance)
+                migrated_count += 1
+                
+            except Exception as e:
+                error_count += 1
+                print(f"Error processing product {product.product_id}: {e}")
+                continue
+        
+        # Commit all changes
+        db.commit()
+        
+        return {
+            "message": f"Migration completed successfully",
+            "migrated_count": migrated_count,
+            "error_count": error_count,
+            "total_products": len(products_without_instances)
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Migration failed: {str(e)}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

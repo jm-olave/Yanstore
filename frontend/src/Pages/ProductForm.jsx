@@ -79,10 +79,7 @@ const ProductForm = () => {
     location: "Select Option",
     image: null,
     description: "",
-    initial_quantity: 1,
-    base_cost: "",
-    selling_price: "1",
-    shipment_cost: "",
+    base_costs: [""]
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,30 +100,6 @@ const ProductForm = () => {
         // Format the date using our hook
         const formattedDate = formatForDisplay(productData.purchase_date);
 
-        // Fetch the latest price point for this product
-        let baseCost = "";
-        let sellingPrice = "";
-        let shipmentCost = "";
-
-        try {
-          const response = await fetch(
-            `${
-              import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
-            }/products/${productId}/price-points/?current_only=true&limit=1`
-          );
-          if (response.ok) {
-            const pricePoints = await response.json();
-            if (pricePoints && pricePoints.length > 0) {
-              sellingPrice = pricePoints[0].selling_price.toString();
-              shipmentCost = pricePoints[0].shipment_cost
-                ? pricePoints[0].shipment_cost.toString()
-                : "0.00";
-            }
-          }
-        } catch (priceError) {
-          console.error("Error fetching price points:", priceError);
-        }
-
         setForm({
           name: productData.name,
           category_id: productData.category_id.toString(),
@@ -136,10 +109,7 @@ const ProductForm = () => {
           location: productData.location || "Select Option",
           description: productData.description || "",
           image: null, // We don't load the existing image as it can't be displayed in the file input
-          initial_quantity: 1,
-          base_cost: baseCost,
-          selling_price: '1',
-          shipment_cost: shipmentCost,
+          base_costs: [""]
         });
       } catch (error) {
         setSubmitStatus({
@@ -194,18 +164,21 @@ const ProductForm = () => {
       return false;
     }
 
-    // Validate base cost
-    if (!form.base_cost) {
+    // Validate base costs
+    if (!form.base_costs || form.base_costs.length === 0 || !form.base_costs[0].trim()) {
       setSubmitStatus({
         type: "error",
         message: "Base cost is required",
       });
       return false;
     }
-    if (!form.selling_price || parseFloat(form.selling_price) <= 0) {
+    
+    // Check if at least one base cost has a valid value
+    const hasValidBaseCost = form.base_costs.some(cost => cost && cost.trim() && !isNaN(parseFloat(cost)) && parseFloat(cost) > 0);
+    if (!hasValidBaseCost) {
       setSubmitStatus({
         type: "error",
-        message: "Selling price is required and must be greater than 0",
+        message: "At least one valid base cost is required",
       });
       return false;
     }
@@ -258,25 +231,6 @@ const ProductForm = () => {
         console.log("Updating product with data:", updateData);
         await updateProduct(productId, updateData);
 
-        // Check if the price information has been provided and create a new price point
-        if (form.base_cost) {
-          try {
-            await createPricePoint({
-              product_id: parseInt(productId),
-              base_cost: parseFloat(form.base_cost),
-              selling_price: parseFloat(form.selling_price), 
-              market_price: parseFloat(form.base_cost) * 1.3,
-              shipment_cost: parseFloat(form.shipment_cost),
-              currency: "USD",
-              effective_from: new Date().toISOString(),
-            });
-            console.log("Created new price point for updated product");
-          } catch (priceError) {
-            console.error("Error creating price point:", priceError);
-            // We'll continue even if price point creation fails
-          }
-        }
-
         setSubmitStatus({
           type: "success",
           message: "Product successfully updated!",
@@ -303,24 +257,15 @@ const ProductForm = () => {
           formData.append("description", form.description);
         }
 
-        formData.append("initial_quantity", form.initial_quantity || 1);
+        form.base_costs.forEach((cost) => {
+          formData.append("base_costs", cost);
+        });
 
         if (form.image) {
           formData.append("image", form.image);
         }
 
         const newProduct = await createProduct(formData);
-
-        // Create a price point for the new product
-        await createPricePoint({
-          product_id: newProduct.product_id,
-          base_cost: parseFloat(form.base_cost),
-          selling_price: parseFloat(form.selling_price),
-          market_price: parseFloat(form.base_cost) * 1.3,
-          shipment_cost: parseFloat(form.shipment_cost),
-          currency: "USD",
-          effective_from: new Date().toISOString(),
-        });
 
         setSubmitStatus({
           type: "success",
@@ -337,10 +282,7 @@ const ProductForm = () => {
           location: "Select Option",
           image: null,
           description: "",
-          initial_quantity: 1,
-          base_cost: "",
-          selling_price: "1",
-          shipment_cost: "",
+          base_costs: [""]
         });
       }
     } catch (error) {
@@ -370,6 +312,22 @@ const ProductForm = () => {
         [name]: value,
       }));
     }
+  };
+
+  const handleBaseCostChange = (index, value) => {
+    const newBaseCosts = [...form.base_costs];
+    newBaseCosts[index] = value;
+    setForm((prev) => ({ ...prev, base_costs: newBaseCosts }));
+  };
+
+  const addBaseCostInput = () => {
+    setForm((prev) => ({ ...prev, base_costs: [...prev.base_costs, ""] }));
+  };
+
+  const removeBaseCostInput = (index) => {
+    const newBaseCosts = [...form.base_costs];
+    newBaseCosts.splice(index, 1);
+    setForm((prev) => ({ ...prev, base_costs: newBaseCosts }));
   };
 
   const handleSubmit = async (event) => {
@@ -433,23 +391,29 @@ const ProductForm = () => {
             onChange={handleFormChange}
             required
           />
-          <div className="flex-col">
+          {form.base_costs.map((cost, index) => (
+            <div key={index} className="flex items-center">
               <NumberInput
-                name="base_cost"
-                title="Base Cost"
-                value={form.base_cost}
-                onChange={handleFormChange}
+                name={`base_cost_${index}`}
+                title={index === 0 ? "Base Cost" : ""}
+                value={cost}
+                onChange={(e) => handleBaseCostChange(index, e.target.value)}
                 required
               />
-              {form.base_cost && !isNaN(parseFloat(form.base_cost)) && (
-                <div className="text-center font-Josefin font-semibold text-sm text-secondaryBlue">
-                  {exchangeRateLoading
-                    ? "Loading..."
-                    : convertToCOP(form.base_cost)}
-                </div>
+              {form.base_costs.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeBaseCostInput(index)}
+                  className="ml-2 text-red-500"
+                >
+                  Remove
+                </button>
               )}
             </div>
-                      
+          ))}
+          <button type="button" onClick={addBaseCostInput} className="text-secondaryBlue">
+            + Add Another Cost
+          </button>
           <ImageInput
             name="image"
             title="Image"
@@ -516,36 +480,10 @@ const ProductForm = () => {
             required
           />
           
-          <NumberInput
-            name="initial_quantity"
-            title="Initial Quantity"
-            value={form.initial_quantity}
-            onChange={handleFormChange}
-            min="1"
-            required
-          />
+          
         </div>
 
-        {/* <div className="">
-          <div className="flex items-center">
-            <div className="mb-4">
-              <NumberInput
-                name="selling_price"
-                title="Selling Price"
-                value={form.selling_price}
-                onChange={handleFormChange}
-                required
-              />
-              {form.selling_price && !isNaN(parseFloat(form.selling_price)) && (
-                <div className="text-sm text-gray-600 mt-1">
-                  {exchangeRateLoading
-                    ? "Loading..."
-                    : convertToCOP(form.selling_price)}
-                </div>
-              )}
-            </div>
-          </div>
-        </div> */}
+        
 
         <div className="lg:col-span-3">
           <TextAreaInput

@@ -9,12 +9,13 @@ import useApi from '../hooks/useApi';
 import Caret from '../Components/Caret/Caret';
 import SellModal from '../Components/SellModal/SellModal';
 import TextInput from '../Components/TextInput/TextInput';
+import MigrationButton from '../Components/MigrationButton/MigrationButton';
 
 const ITEMS_PER_PAGE = 200;
 
 const Inventory = () => {
 
-  const [selectedProductIds, setSelectedProductIds] = useState([]);
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState([]);
 
   const tableHeaders = [
     '', // For select all checkbox
@@ -23,16 +24,14 @@ const Inventory = () => {
     'CONDITION',
     'CATEGORY',
     'BASE COST',
-    'SHIPMENT COST',
-    'OBT METHOD',
     'LOCATION',
     'DESCRIPTION'
   ];
 
-  const { loading: apiLoading, error: apiError, getProducts, getCategories, deleteProduct, bulkUpdateProductLocation } = useApi();
+  const { loading: apiLoading, error: apiError, getInstances, getCategories, deleteProduct, bulkUpdateProductLocation } = useApi();
   
-  const [allProducts, setAllProducts] = useState([]); // Store all fetched products
-  const [displayedProducts, setDisplayedProducts] = useState([]); // Products currently shown after all filters
+  const [allInstances, setAllInstances] = useState([]); // Store all fetched instances
+  const [displayedInstances, setDisplayedInstances] = useState([]); // Instances currently shown after all filters
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
@@ -62,7 +61,7 @@ const Inventory = () => {
   ];
 
   const [sellModalOpen, setSellModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedInstance, setSelectedInstance] = useState(null);
   const [saleData, setSaleData] = useState({
     sale_price: '',
     payment_method: '',
@@ -76,33 +75,33 @@ const Inventory = () => {
   const [newLocation, setNewLocation] = useState('');
 
   // This is the CORRECT and ONLY definition of getPaginatedProducts
-  const getPaginatedProducts = (productsToPaginate) => {
+  const getPaginatedInstances = (instancesToPaginate) => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
-    return productsToPaginate.slice(startIndex, endIndex);
+    return instancesToPaginate.slice(startIndex, endIndex);
   };
 
   // For Select All Checkbox on current page
-  const currentPagedProducts = getPaginatedProducts(displayedProducts);
-  const allOnPageSelected = currentPagedProducts.length > 0 && currentPagedProducts.every(p => selectedProductIds.includes(p.product_id));
+  const currentPagedInstances = getPaginatedInstances(displayedInstances);
+  const allOnPageSelected = currentPagedInstances.length > 0 && currentPagedInstances.every(p => selectedInstanceIds.includes(p.instance_id));
 
   const handleSelectAllOnPage = () => {
     if (allOnPageSelected) {
       // Deselect all on current page
-      const pageProductIds = currentPagedProducts.map(p => p.product_id);
-      setSelectedProductIds(prevSelected => prevSelected.filter(id => !pageProductIds.includes(id)));
+      const pageInstanceIds = currentPagedInstances.map(p => p.instance_id);
+      setSelectedInstanceIds(prevSelected => prevSelected.filter(id => !pageInstanceIds.includes(id)));
     } else {
       // Select all on current page
-      const pageProductIds = currentPagedProducts.map(p => p.product_id);
-      setSelectedProductIds(prevSelected => [...new Set([...prevSelected, ...pageProductIds])]);
+      const pageInstanceIds = currentPagedInstances.map(p => p.instance_id);
+      setSelectedInstanceIds(prevSelected => [...new Set([...prevSelected, ...pageInstanceIds])]);
     }
   };
 
-  const handleSelectSingle = (productId, isSelected) => {
+  const handleSelectSingle = (instanceId, isSelected) => {
     if (isSelected) {
-      setSelectedProductIds(prevSelected => prevSelected.filter(id => id !== productId));
+      setSelectedInstanceIds(prevSelected => prevSelected.filter(id => id !== instanceId));
     } else {
-      setSelectedProductIds(prevSelected => [...prevSelected, productId]);
+      setSelectedInstanceIds(prevSelected => [...prevSelected, instanceId]);
     }
   };
 
@@ -135,20 +134,20 @@ const Inventory = () => {
     }
   
     // Additional validation to ensure we have selected products
-    if (!selectedProductIds || selectedProductIds.length === 0) {
+    if (!selectedInstanceIds || selectedInstanceIds.length === 0) {
       console.log('Validation failed - no products selected');
       setSubmitStatus({ type: 'error', message: 'Please select at least one product to update.' });
       return;
     }
   
     try {
-      console.log('selectedProductIds:', selectedProductIds); 
-      const integerProductIds = selectedProductIds.map(id => parseInt(id, 10));
-      console.log('integerProductIds:', integerProductIds);
+      console.log('selectedInstanceIds:', selectedInstanceIds); 
+      const integerInstanceIds = selectedInstanceIds.map(id => parseInt(id, 10));
+      console.log('integerInstanceIds:', integerInstanceIds);
       console.log('Attempting to update with newLocation:', newLocation);
       console.log('About to call bulkUpdateProductLocation...');
       
-      const result = await bulkUpdateProductLocation(integerProductIds, newLocation);
+      const result = await bulkUpdateProductLocation(integerInstanceIds, newLocation);
       console.log('bulkUpdateProductLocation result:', result);
       
       if (result.updated_count > 0 || result.message) {
@@ -156,8 +155,8 @@ const Inventory = () => {
           type: 'success', 
           message: result.message || `${result.updated_count} products updated successfully.` 
         });
-        fetchProducts(); // Refresh products
-        setSelectedProductIds([]); // Clear selections
+        fetchInstances(); // Refresh products
+        setSelectedInstanceIds([]); // Clear selections
         setIsLocationModalOpen(false); // Close modal
         setNewLocation(''); // Reset new location
       } else if (result.errors && result.errors.length > 0) {
@@ -216,7 +215,7 @@ const Inventory = () => {
       const saleDate = new Date(saleData.sale_date);
       saleDate.setHours(12, 0, 0, 0);
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/products/${selectedProduct.product_id}/sell`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/instances/${selectedInstance.instance_id}/sell`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...saleData, sale_date: saleDate.toISOString() }),
@@ -225,7 +224,7 @@ const Inventory = () => {
       const data = await response.json();
 
       if (response.ok) {
-        fetchProducts(); // Re-fetch products to update inventory
+        fetchInstances(); // Re-fetch products to update inventory
         setSellModalOpen(false);
         setSaleData({ sale_price: '', payment_method: '', sale_date: new Date().toISOString().split('T')[0], notes: '' });
         setSubmitStatus({ type: 'success', message: 'Product sold successfully' });
@@ -249,33 +248,11 @@ const Inventory = () => {
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchInstances = async () => {
     setInventoryLoading(true);
     try {
-      const productsData = await getProducts();
-      
-      const productsWithPricing = await Promise.all(productsData.map(async (product) => {
-        try {
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/products/${product.product_id}/price-points/?current_only=true&limit=1`);
-          if (response.ok) {
-            const pricePoints = await response.json();
-            if (pricePoints && pricePoints.length > 0) {
-              return {
-                ...product,
-                base_cost: pricePoints[0].base_cost,
-                selling_price: pricePoints[0].selling_price,
-                shipment_cost: pricePoints[0].shipment_cost || 0
-              };
-            }
-          }
-          return { ...product, base_cost: null, selling_price: null, shipment_cost: null };
-        } catch (error) {
-          console.error(`Error fetching price for product ${product.product_id}:`, error);
-          return { ...product, base_cost: null, selling_price: null, shipment_cost: null };
-        }
-      }));
-      
-      setAllProducts(productsWithPricing); // Store all products here
+      const instances = await getInstances();
+      setAllInstances(instances);
       setSubmitStatus({ type: '', message: '' });
     } catch (error) {
       console.error('Error loading data:', error);
@@ -294,7 +271,7 @@ const Inventory = () => {
           ...categoriesData.map(cat => ({ value: cat.category_id.toString(), label: cat.category_name }))
         ];
         setCategories(mappedCategories);
-        await fetchProducts();
+        await fetchInstances();
       } catch (error) {
         console.error('Error loading data:', error);
         setSubmitStatus({ type: 'error', message: `Failed to load data: ${error.message}` });
@@ -302,41 +279,41 @@ const Inventory = () => {
       }
     };
     loadData();
-  }, [getProducts, getCategories]);
+  }, [getInstances, getCategories]);
 
   // Combined filter function using useCallback for memoization
   const applyFilters = useCallback(() => {
-    let currentFilteredProducts = [...allProducts]; // Start with all products
+    let currentFilteredInstances = [...allInstances]; // Start with all instances
 
     // Apply name search filter
     if (nameToSearch.trim() !== '') { //
       const lowerCaseSearchText = nameToSearch.toLowerCase(); //
-      currentFilteredProducts = currentFilteredProducts.filter(item => //
-        item.name && typeof item.name === 'string' && item.name.toLowerCase().includes(lowerCaseSearchText) //
+      currentFilteredInstances = currentFilteredInstances.filter(item => //
+        item.product.name && typeof item.product.name === 'string' && item.product.name.toLowerCase().includes(lowerCaseSearchText) //
       );
     }
 
     // Apply category filter
     if (selectedCategory !== 'all') { //
-      currentFilteredProducts = currentFilteredProducts.filter(product =>  //
-        product.category_id?.toString() === selectedCategory //
+      currentFilteredInstances = currentFilteredInstances.filter(instance =>  //
+        instance.product.category_id?.toString() === selectedCategory //
       );
     }
 
     // Apply location filter
     if (selectedLocation !== 'all') { //
-      currentFilteredProducts = currentFilteredProducts.filter(product => //
-        product.location === selectedLocation //
+      currentFilteredInstances = currentFilteredInstances.filter(instance => //
+        instance.location === selectedLocation //
       );
     }
 
-    setDisplayedProducts(currentFilteredProducts); // Update the products to be displayed
-  }, [allProducts, nameToSearch, selectedCategory, selectedLocation]); // Dependencies for memoization
+    setDisplayedInstances(currentFilteredInstances); // Update the instances to be displayed
+  }, [allInstances, nameToSearch, selectedCategory, selectedLocation]); // Dependencies for memoization
 
   // Run applyFilters whenever filter dependencies change
   useEffect(() => {
     applyFilters();
-  }, [allProducts, nameToSearch, selectedCategory, selectedLocation, applyFilters]); //
+  }, [allInstances, nameToSearch, selectedCategory, selectedLocation, applyFilters]); //
 
 
   const handleCategoryChange = (e) => {
@@ -362,8 +339,8 @@ const Inventory = () => {
       
       const result = await deleteProduct(productId);
       
-      // Update allProducts directly after deletion
-      setAllProducts(prevProducts => prevProducts.filter(product => product.product_id !== productId));
+      // Update allInstances directly after deletion
+      setAllInstances(prevInstances => prevInstances.filter(instance => instance.product.product_id !== productId));
       
       setSubmitStatus({ type: 'success', message: result.message || 'Product successfully deleted' });
       hideDeleteConfirmation();
@@ -422,10 +399,10 @@ const Inventory = () => {
   };
 
   useEffect(() => {
-    const newTotalPages = Math.ceil(displayedProducts.length / ITEMS_PER_PAGE); // Use displayedProducts here
+    const newTotalPages = Math.ceil(displayedInstances.length / ITEMS_PER_PAGE); // Use displayedInstances here
     setTotalPages(newTotalPages);
     setCurrentPage(1);
-  }, [displayedProducts]); // Recalculate total pages when displayed products change
+  }, [displayedInstances]); // Recalculate total pages when displayed products change
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -440,7 +417,7 @@ const Inventory = () => {
           <div className="relative p-8 bg-white w-full max-w-md m-auto flex-col flex rounded-lg shadow-lg">
             <h2 className="text-2xl font-semibold mb-4">Update Location for Selected Products</h2>
             <p className="mb-4 text-sm text-gray-700">
-              You have selected {selectedProductIds.length} product(s).
+              You have selected {selectedInstanceIds.length} product(s).
             </p>
             <InputSelect
               name="newLocation"
@@ -481,10 +458,10 @@ const Inventory = () => {
         />
       )}
       
-      {sellModalOpen && selectedProduct && (
+      {sellModalOpen && selectedInstance && (
         <SellModal 
           PAYMENT_METHODS={PAYMENT_METHODS}
-          selectedProduct={selectedProduct}
+          selectedProduct={selectedInstance}
           setSaleData={setSaleData}
           saleData={saleData}
           handleSell={handleSell}
@@ -530,7 +507,7 @@ const Inventory = () => {
             </div>
             <div className='flex justify-center items-center col-start-3'>
               <div className="text-secondaryBlue font-semibold">
-                {displayedProducts.length} products found
+                {displayedInstances.length} products found
               </div>
             </div>
             <div className="flex justify-center items-center row-start-2 gap-4">
@@ -542,12 +519,19 @@ const Inventory = () => {
               </Link>
               <button
                 onClick={() => setIsLocationModalOpen(true)}
-                disabled={selectedProductIds.length === 0}
+                disabled={selectedInstanceIds.length === 0}
                 className="bg-secondaryBlue text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:cursor-not-allowed"
               >
-                Edit Selected Locations ({selectedProductIds.length})
+                Edit Selected Locations ({selectedInstanceIds.length})
               </button>
             </div>
+            
+            {/* Migration Button - Only show if no instances exist */}
+            {displayedInstances.length === 0 && !inventoryLoading && (
+              <div className="col-span-3 flex justify-center mt-4">
+                <MigrationButton />
+              </div>
+            )}
           </div>
         </div>
         
@@ -567,7 +551,7 @@ const Inventory = () => {
                         className="form-checkbox h-5 w-5 text-blue-600"
                         checked={allOnPageSelected}
                         onChange={handleSelectAllOnPage}
-                        disabled={currentPagedProducts.length === 0} // Disable if no products on page
+                        disabled={currentPagedInstances.length === 0} // Disable if no products on page
                       />
                     </TableCol>
                     {tableHeaders.slice(1).map(header => ( // Use slice(1) to skip the manually added first header for checkbox
@@ -587,45 +571,43 @@ const Inventory = () => {
                   </TableRow>
                 </thead>
                 <tbody className='font-Josefin align-middle'>
-                  {displayedProducts.length > 0 ? ( 
-                    getSortedArray(getPaginatedProducts(displayedProducts)).map(item => {
-                      const isSelected = selectedProductIds.includes(item.product_id);
+                  {displayedInstances.length > 0 ? ( 
+                    getSortedArray(getPaginatedInstances(displayedInstances)).map(item => {
+                      const isSelected = selectedInstanceIds.includes(item.instance_id);
                       return (
-                      <TableRow key={item.sku}>
-                        <TableCol key={`select-${item.sku}`}>
+                      <TableRow key={item.instance_id}>
+                        <TableCol key={`select-${item.instance_id}`}>
                           <input
                             type="checkbox"
                             className="form-checkbox h-5 w-5 text-blue-600"
                             checked={isSelected}
-                            onChange={() => handleSelectSingle(item.product_id, isSelected)}
+                            onChange={() => handleSelectSingle(item.instance_id, isSelected)}
                           />
                         </TableCol>
-                        <TableCol text={item.sku} key={`sku-${item.sku}`}/>
-                        <TableCol text={item.name} key={`name-${item.sku}`}/>
-                        <TableCol text={item.condition} key={`cond-${item.sku}`}/>
+                        <TableCol text={item.product.sku} key={`sku-${item.instance_id}`}/>
+                        <TableCol text={item.product.name} key={`name-${item.instance_id}`}/>
+                        <TableCol text={item.product.condition} key={`cond-${item.instance_id}`}/>
                         <TableCol 
-                          text={categories.find(cat => cat.value === item.category_id?.toString())?.label || 'Unknown'} 
-                          key={`cat-${item.sku}`}
+                          text={categories.find(cat => cat.value === item.product.category_id?.toString())?.label || 'Unknown'} 
+                          key={`cat-${item.instance_id}`}
                         />
-                        <TableCol text={item.base_cost ? `$${Number(item.base_cost).toFixed(2)}` : 'N/A'} key={`cost-${item.sku}`}/>
-                        <TableCol text={formatCurrency(item.shipment_cost)} key={`shipment-cost-${item.sku}`}/>
-                        <TableCol text={item.obtained_method} key={`ob_me-${item.sku}`}/>
-                        <TableCol text={item.location || "Colombia"} key={`location-${item.sku}`}/>
-                        <TableCol text={item.description} key={`desc-${item.sku}`}/>
-                        <TableCol key={`image-${item.sku}`}>
-                          <div onClick={() => modalHandler(item.product_id, item.name)} className='text-secondaryBlue font-bold cursor-pointer'>
+                        <TableCol text={item.base_cost ? `${Number(item.base_cost).toFixed(2)}` : 'N/A'} key={`cost-${item.instance_id}`}/>
+                        <TableCol text={item.location || "Colombia"} key={`location-${item.instance_id}`}/>
+                        <TableCol text={item.product.description} key={`desc-${item.instance_id}`}/>
+                        <TableCol key={`image-${item.instance_id}`}>
+                          <div onClick={() => modalHandler(item.product.product_id, item.product.name)} className='text-secondaryBlue font-bold cursor-pointer'>
                             Image
                           </div>
                         </TableCol>
-                        <TableCol key={`edit-${item.sku}`}>
-                          <Link className='text-secondaryBlue font-bold' to={`/edit-product/${item.product_id}`}>
+                        <TableCol key={`edit-${item.instance_id}`}>
+                          <Link className='text-secondaryBlue font-bold' to={`/edit-product/${item.product.product_id}`}>
                             Edit
                           </Link>
                         </TableCol>
-                        <TableCol key={`delete-${item.sku}`}>
+                        <TableCol key={`delete-${item.instance_id}`}>
                           <div 
                             className='text-mainRed font-bold cursor-pointer'
-                            onClick={() => showDeleteConfirmation(item)}
+                            onClick={() => showDeleteConfirmation(item.product)}
                           >
                             Delete
                           </div>
@@ -633,18 +615,17 @@ const Inventory = () => {
                         <TableCol>
                           <button
                             onClick={() => {
-                              console.log('Product inventory:', item.inventory);
-                              setSelectedProduct(item);
+                              setSelectedInstance(item);
                               setSellModalOpen(true);
                             }}
-                            disabled={!item.inventory || item.inventory.available_quantity === 0}
+                            disabled={item.status !== 'available'}
                             className={`text-secondaryBlue px-4 py-2 rounded font-bold ${
-                              (!item.inventory || item.inventory.available_quantity === 0)
+                              item.status !== 'available'
                                 ? 'bg-gray-300 text-gray-600'
                                 : 'bg-green-500 hover:bg-green-600 text-Green'
                             }`}
                           >
-                            {(!item.inventory || item.inventory.available_quantity === 0) ? 'Out of Stock' : 'Sell'}
+                            {item.status !== 'available' ? 'Sold' : 'Sell'}
                           </button>
                         </TableCol>
                       </TableRow>

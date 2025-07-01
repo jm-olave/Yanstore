@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Numeric, ForeignKey, Date, Text, LargeBinary
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import func
 from database import Base
 
@@ -20,7 +20,7 @@ class Product(Base):
     
     product_id = Column(Integer, primary_key=True, index=True)
     sku = Column(String(50), unique=True, nullable=False)
-    category_id = Column(Integer, ForeignKey('product_categories.category_id'))
+    category_id = Column(Integer, ForeignKey('product_categories.category_id', ondelete='SET NULL'))
     name = Column(String(200), nullable=False)
     description = Column(String)
     location = Column(String(100))
@@ -33,12 +33,13 @@ class Product(Base):
     
     # Relationships
     category = relationship("ProductCategory", back_populates="products")
-    images = relationship("ProductImage", back_populates="product")
-    inventory = relationship("Inventory", back_populates="product", uselist=False, lazy='joined')
-    price_points = relationship("PricePoint", back_populates="product")
-    price_history = relationship("PriceHistory", back_populates="product")
-    supplier_products = relationship("SupplierProduct", back_populates="product")
-    order_items = relationship("OrderItem", back_populates="product")
+    images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
+    price_points = relationship("PricePoint", back_populates="product", cascade="all, delete-orphan")
+    instances = relationship("ProductInstance", back_populates="product", cascade="all, delete-orphan")
+    price_history = relationship("PriceHistory", back_populates="product", cascade="all, delete-orphan")
+    supplier_products = relationship("SupplierProduct", back_populates="product", cascade="all, delete-orphan")
+    order_items = relationship("OrderItem", back_populates="product", cascade="all, delete-orphan")
+    inventory = relationship("Inventory", back_populates="product", cascade="all, delete-orphan")
 
     def calculate_rentability(self, db_session) -> dict:
         """Calculate various rentability metrics for the product"""
@@ -100,7 +101,7 @@ class ProductImage(Base):
     __tablename__ = "product_images"
 
     image_id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.product_id', ondelete='CASCADE'), nullable=False)
     image_data = Column(LargeBinary, nullable=False)  # Store the actual image data
     image_type = Column(String(10), nullable=False)
     is_primary = Column(Boolean, default=False)
@@ -108,6 +109,20 @@ class ProductImage(Base):
 
     # Relationship back to product
     product = relationship("Product", back_populates="images")
+
+class ProductInstance(Base):
+    __tablename__ = "product_instances"
+
+    instance_id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey('products.product_id', ondelete='CASCADE'), nullable=False)
+    base_cost = Column(Numeric(10, 2), nullable=False)
+    status = Column(String(20), nullable=False, default='available')
+    purchase_date = Column(Date)
+    location = Column(String(100))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    product = relationship("Product", back_populates="instances")
 
 class Inventory(Base):
     """
@@ -117,7 +132,7 @@ class Inventory(Base):
     __tablename__ = "inventory"
 
     inventory_id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.product_id', ondelete='CASCADE'), nullable=False)
     quantity = Column(Integer, nullable=False, default=0)
     available_quantity = Column(Integer, nullable=False, default=0)
     reserved_quantity = Column(Integer, nullable=False, default=0)
@@ -128,7 +143,7 @@ class Inventory(Base):
 
     # Relationships
     product = relationship("Product", back_populates="inventory")
-    transactions = relationship("InventoryTransaction", back_populates="inventory")
+    transactions = relationship("InventoryTransaction", back_populates="inventory", cascade="all, delete-orphan")
 
 class InventoryTransaction(Base):
     """
@@ -157,7 +172,7 @@ class PricePoint(Base):
     __tablename__ = "price_points"
 
     price_point_id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.product_id', ondelete='CASCADE'), nullable=False)
     base_cost = Column(Numeric(10, 2), nullable=False)
     selling_price = Column(Numeric(10, 2), nullable=False)
     market_price = Column(Numeric(10, 2))
@@ -178,7 +193,7 @@ class PriceHistory(Base):
     __tablename__ = "price_history"
 
     history_id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.product_id', ondelete='CASCADE'), nullable=False)
     old_price = Column(Numeric(10, 2), nullable=False)
     new_price = Column(Numeric(10, 2), nullable=False)
     change_date = Column(DateTime(timezone=True), server_default=func.now())
@@ -214,8 +229,8 @@ class SupplierProduct(Base):
     __tablename__ = "supplier_products"
 
     supplier_product_id = Column(Integer, primary_key=True, index=True)
-    supplier_id = Column(Integer, ForeignKey('suppliers.supplier_id'), nullable=False)
-    product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
+    supplier_id = Column(Integer, ForeignKey('suppliers.supplier_id', ondelete='CASCADE'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.product_id', ondelete='CASCADE'), nullable=False)
     supplier_sku = Column(String(50))
     supplier_price = Column(Numeric(10, 2), nullable=False)
     lead_time_days = Column(Integer)
@@ -259,8 +274,8 @@ class OrderItem(Base):
     __tablename__ = "order_items"
 
     order_item_id = Column(Integer, primary_key=True, index=True)
-    order_id = Column(Integer, ForeignKey('orders.order_id'), nullable=False)
-    product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
+    order_id = Column(Integer, ForeignKey('orders.order_id', ondelete='CASCADE'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.product_id', ondelete='CASCADE'), nullable=False)
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Numeric(10, 2), nullable=False)
     subtotal = Column(Numeric(10, 2), nullable=False)
@@ -279,7 +294,7 @@ class Sale(Base):
     __tablename__ = "sales"
 
     sale_id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.product_id', ondelete='CASCADE'), nullable=False)
     sale_price = Column(Numeric(10, 2), nullable=False)
     sale_date = Column(DateTime(timezone=True), nullable=False)
     payment_method = Column(String(20), nullable=False)
@@ -287,7 +302,11 @@ class Sale(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
-    product = relationship("Product", backref="sales")
+    product = relationship(
+        "Product",
+        backref=backref("sales", passive_deletes=True),
+        passive_deletes=True
+    )
 
 class FinancialMetric(Base):
     """
