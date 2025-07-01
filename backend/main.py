@@ -1152,7 +1152,7 @@ def get_sale_details(
 @app.get("/instances/", response_model=List[schema.ProductInstanceResponse])
 def get_all_instances(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 1000,  # Increased default limit to fetch more products
     db: Session = Depends(get_db),
     category_id: Optional[int] = None,
     location: Optional[str] = None

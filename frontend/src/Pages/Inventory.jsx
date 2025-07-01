@@ -11,7 +11,7 @@ import SellModal from '../Components/SellModal/SellModal';
 import TextInput from '../Components/TextInput/TextInput';
 import MigrationButton from '../Components/MigrationButton/MigrationButton';
 
-const ITEMS_PER_PAGE = 200;
+const ITEMS_PER_PAGE = 90;
 
 const Inventory = () => {
 
