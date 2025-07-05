@@ -10,6 +10,7 @@ import Caret from '../Components/Caret/Caret';
 import SellModal from '../Components/SellModal/SellModal';
 import TextInput from '../Components/TextInput/TextInput';
 import MigrationButton from '../Components/MigrationButton/MigrationButton';
+import DateInput from '../Components/DateInput/DateInput';
 
 const ITEMS_PER_PAGE = 90;
 
@@ -22,6 +23,7 @@ const Inventory = () => {
     'SKU',
     'NAME',
     'CONDITION',
+    'PURCHASE DATE',
     'CATEGORY',
     'BASE COST',
     'LOCATION',
@@ -38,6 +40,9 @@ const Inventory = () => {
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
   const [inventoryLoading, setInventoryLoading] = useState(true);
   const [sort, setSort] = useState({ keyToSort: 'SKU', direction: 'asc' });
+
+  const [startDate, setStartDate] = useState(''); // New state for start date
+  const [endDate, setEndDate] = useState('');     // New state for end date
   
   const [modalData, setModalData] = useState({
     open: false,
@@ -307,13 +312,38 @@ const Inventory = () => {
       );
     }
 
+    // Apply date range filter (NEW)
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Set to end of the day for inclusive filtering
+
+      currentFilteredInstances = currentFilteredInstances.filter(instance => {
+        const purchaseDate = new Date(instance.purchase_date);
+        return purchaseDate >= start && purchaseDate <= end;
+      });
+    } else if (startDate) { // Filter only by start date if end date is not provided
+      const start = new Date(startDate);
+      currentFilteredInstances = currentFilteredInstances.filter(instance => {
+        const purchaseDate = new Date(instance.purchase_date);
+        return purchaseDate >= start;
+      });
+    } else if (endDate) { // Filter only by end date if start date is not provided
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      currentFilteredInstances = currentFilteredInstances.filter(instance => {
+        const purchaseDate = new Date(instance.purchase_date);
+        return purchaseDate <= end;
+      });
+    }
+
     setDisplayedInstances(currentFilteredInstances); // Update the instances to be displayed
-  }, [allInstances, nameToSearch, selectedCategory, selectedLocation]); // Dependencies for memoization
+  }, [allInstances, nameToSearch, selectedCategory, selectedLocation, startDate, endDate]); // Dependencies for memoization
 
   // Run applyFilters whenever filter dependencies change
   useEffect(() => {
     applyFilters();
-  }, [allInstances, nameToSearch, selectedCategory, selectedLocation, applyFilters]); //
+  }, [allInstances, nameToSearch, selectedCategory, selectedLocation, startDate, endDate, applyFilters]); //
 
 
   const handleCategoryChange = (e) => {
@@ -408,6 +438,8 @@ const Inventory = () => {
     setCurrentPage(page);
   };
 
+  console.log(displayedInstances)
+
   return (
     <>
       <ModalImage data={modalData} handler={modalHandler} />
@@ -485,6 +517,24 @@ const Inventory = () => {
                 value={nameToSearch} // Use nameToSearch state
                 onChange={handleNameSearch}
                 placeholder='Name'
+              />
+            </div>
+            <div className="max-w-96">
+              <DateInput
+                name="startDate"
+                title="Purchase Date (From)"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="max-w-96">
+              <DateInput
+                name="endDate"
+                title="Purchase Date (To)"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
             <div className="row-start-2 max-w-96">
@@ -587,6 +637,7 @@ const Inventory = () => {
                         <TableCol text={item.product.sku} key={`sku-${item.instance_id}`}/>
                         <TableCol text={item.product.name} key={`name-${item.instance_id}`}/>
                         <TableCol text={item.product.condition} key={`cond-${item.instance_id}`}/>
+                        <TableCol text={item.purchase_date} key={`date-${item.instance_id}`}/>
                         <TableCol 
                           text={categories.find(cat => cat.value === item.product.category_id?.toString())?.label || 'Unknown'} 
                           key={`cat-${item.instance_id}`}
