@@ -3,6 +3,81 @@ from typing import Optional, List, Union
 from datetime import datetime, date
 from decimal import Decimal
 
+# Event Schemas
+class EventBase(BaseModel):
+    """Base schema for event data"""
+    name: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = None
+    country: str = Field(..., min_length=1, max_length=100)
+    start_date: date
+    end_date: date
+    initial_budget: Decimal = Field(..., ge=0)
+
+    @validator('end_date')
+    def validate_date_range(cls, v, values):
+        if 'start_date' in values and v <= values['start_date']:
+            raise ValueError('End date must be after start date')
+        return v
+
+class EventCreate(EventBase):
+    """Schema for creating a new event"""
+    pass
+
+class EventUpdate(BaseModel):
+    """Schema for updating event information"""
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = None
+    country: Optional[str] = Field(None, min_length=1, max_length=100)
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    initial_budget: Optional[Decimal] = Field(None, ge=0)
+
+class EventResponse(BaseModel):
+    """Schema for event responses"""
+    event_id: int
+    name: str
+    description: Optional[str] = None
+    country: str
+    start_date: date
+    end_date: date
+    initial_budget: Decimal
+    end_budget: Decimal
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Travel Expense Schemas
+class TravelExpenseBase(BaseModel):
+    """Base schema for travel expense data"""
+    name: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = None
+    amount: Decimal = Field(..., ge=0)
+    expense_date: date
+
+class TravelExpenseCreate(TravelExpenseBase):
+    """Schema for creating new travel expenses"""
+    event_id: int
+
+class TravelExpenseUpdate(BaseModel):
+    """Schema for updating travel expense information"""
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = None
+    amount: Optional[Decimal] = Field(None, ge=0)
+    expense_date: Optional[date] = None
+
+class TravelExpenseResponse(TravelExpenseBase):
+    """Schema for travel expense responses"""
+    expense_id: int
+    event_id: int
+    receipt_type: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
 # Base Schemas 
 
 class CategoryBase(BaseModel):
@@ -22,6 +97,7 @@ class ProductBase(BaseModel):
     location: Optional[str] = Field(None, max_length=100)
     purchase_date: Union[str, date]
     obtained_method: str = Field(..., min_length=1, max_length=50)
+    event_id: Optional[int] = None
 
     @validator('purchase_date')
     def parse_date(cls, v):
@@ -212,6 +288,7 @@ class ProductResponse(ProductBase):
     """Schema for product responses including rentability metrics"""
     product_id: int
     category_id: Optional[int]
+    event_id: Optional[int]
     condition: str = Field(..., pattern=VALID_CONDITIONS)
     is_active: bool
     created_at: datetime

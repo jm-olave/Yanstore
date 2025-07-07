@@ -71,6 +71,472 @@ async def health_check():
     """Check if the API is running and database is connected"""
     return {"status": "healthy", "version": "1.0.0"}
 
+# Event endpoints
+@app.post("/events/", response_model=schema.EventResponse)
+def create_event(
+    event: schema.EventCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a new event"""
+    try:
+        db_event = models.Event(**event.dict())
+        db.add(db_event)
+        db.commit()
+        db.refresh(db_event)
+        return db_event
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid event data"
+        )
+
+@app.get("/events/", response_model=List[schema.EventResponse])
+def list_events(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """List all events"""
+    events = db.query(models.Event).offset(skip).limit(limit).all()
+    return events
+
+@app.get("/events/{event_id}", response_model=schema.EventResponse)
+def get_event(
+    event_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get a specific event by ID"""
+    event = db.query(models.Event).filter(models.Event.event_id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return event
+
+@app.patch("/events/{event_id}", response_model=schema.EventResponse)
+def update_event(
+    event_id: int,
+    event_update: schema.EventUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update an event"""
+    db_event = db.query(models.Event).filter(models.Event.event_id == event_id).first()
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    update_data = event_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_event, field, value)
+    
+    db.commit()
+    db.refresh(db_event)
+    return db_event
+
+@app.delete("/events/{event_id}", response_model=dict)
+def delete_event(
+    event_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete an event"""
+    db_event = db.query(models.Event).filter(models.Event.event_id == event_id).first()
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Check if event has associated products
+    associated_products = db.query(models.Product).filter(
+        models.Product.event_id == event_id,
+        models.Product.is_active == True
+    ).count()
+    
+    if associated_products > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot delete event with {associated_products} active products. Deactivate or reassign products first."
+        )
+    
+    try:
+        db.delete(db_event)
+        db.commit()
+        
+        return {
+            "success": True, 
+            "message": f"Event '{db_event.name}' has been deleted",
+            "event_id": event_id
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while deleting the event: {str(e)}"
+        )
+
+@app.get("/events/{event_id}/products", response_model=List[schema.ProductResponse])
+def get_event_products(
+    event_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get all products associated with an event"""
+    products = db.query(models.Product).filter(
+        models.Product.event_id == event_id,
+        models.Product.is_active == True
+    ).offset(skip).limit(limit).all()
+    return products
+
+@app.patch("/events/{event_id}/calculate-end-budget")
+def calculate_event_end_budget(
+    event_id: int,
+    db: Session = Depends(get_db)
+):
+    """Calculate and update the end budget for an event based on products purchased"""
+    db_event = db.query(models.Event).filter(models.Event.event_id == event_id).first()
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Get all products from this event
+    products = db.query(models.Product).filter(
+        models.Product.event_id == event_id,
+        models.Product.is_active == True
+    ).all()
+    
+    print(f"Found {len(products)} products for event {event_id}")
+    
+    # Calculate total spent on products (sum of base costs from product instances)
+    total_spent = 0
+    for product in products:
+        print(f"Processing product {product.product_id}: {product.name}")
+        instances = db.query(models.ProductInstance).filter(
+            models.ProductInstance.product_id == product.product_id
+        ).all()
+        
+        if instances:
+            for instance in instances:
+                product_cost = float(instance.base_cost)
+                total_spent += product_cost
+                print(f"  - Instance found: base_cost=${instance.base_cost}, total=${product_cost}")
+        else:
+            print(f"  - No instances found for product {product.product_id}")
+    
+    print(f"Total spent on products: ${total_spent}")
+    
+    # Calculate total travel expenses
+    travel_expenses = db.query(models.TravelExpense).filter(
+        models.TravelExpense.event_id == event_id
+    ).all()
+    
+    total_travel_expenses = sum(float(expense.amount) for expense in travel_expenses)
+    print(f"Total travel expenses: ${total_travel_expenses}")
+    
+    # Calculate end budget: initial_budget - total_spent - total_travel_expenses
+    end_budget = float(db_event.initial_budget) - total_spent - total_travel_expenses
+    
+    # Update the event
+    db_event.end_budget = end_budget
+    db.commit()
+    db.refresh(db_event)
+    
+    # Create calculation string with travel expenses included
+    calculation_str = f"${float(db_event.initial_budget):.2f} - ${total_spent:.2f} - ${total_travel_expenses:.2f} = ${end_budget:.2f}"
+    
+    return {
+        "event_id": event_id,
+        "initial_budget": float(db_event.initial_budget),
+        "total_spent_on_products": total_spent,
+        "total_travel_expenses": total_travel_expenses,
+        "end_budget": end_budget,
+        "calculation": calculation_str
+    }
+
+# Travel Expense endpoints
+@app.post("/travel-expenses/", response_model=schema.TravelExpenseResponse)
+async def create_travel_expense(
+    event_id: int = Form(...),
+    name: str = Form(...),
+    description: Optional[str] = Form(None),
+    amount: float = Form(...),
+    expense_date: str = Form(...),
+    receipt: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
+    """Create a new travel expense for an event"""
+    try:
+        # Validate event exists
+        event = db.query(models.Event).filter(models.Event.event_id == event_id).first()
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Parse expense date
+        try:
+            parsed_date = datetime.strptime(expense_date, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid date format. Please use YYYY-MM-DD format."
+            )
+        
+        # Validate amount
+        if amount <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Amount must be greater than 0"
+            )
+        
+        # Create travel expense
+        db_expense = models.TravelExpense(
+            event_id=event_id,
+            name=name,
+            description=description,
+            amount=amount,
+            expense_date=parsed_date
+        )
+        
+        # Handle receipt if provided
+        if receipt:
+            content_type = receipt.content_type
+            if content_type not in ["image/jpeg", "image/png"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Only JPG and PNG images are allowed for receipts"
+                )
+            
+            try:
+                receipt_data = await receipt.read()
+                image_type = "jpg" if content_type == "image/jpeg" else "png"
+                db_expense.receipt_data = receipt_data
+                db_expense.receipt_type = image_type
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Failed to process receipt: {str(e)}"
+                )
+        
+        db.add(db_expense)
+        db.commit()
+        db.refresh(db_expense)
+        
+        return db_expense
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while creating the travel expense: {str(e)}"
+        )
+
+@app.get("/events/{event_id}/travel-expenses", response_model=List[schema.TravelExpenseResponse])
+def get_event_travel_expenses(
+    event_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get all travel expenses for an event"""
+    # Validate event exists
+    event = db.query(models.Event).filter(models.Event.event_id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    expenses = db.query(models.TravelExpense).filter(
+        models.TravelExpense.event_id == event_id
+    ).offset(skip).limit(limit).all()
+    
+    return expenses
+
+@app.get("/travel-expenses/{expense_id}", response_model=schema.TravelExpenseResponse)
+def get_travel_expense(
+    expense_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get a specific travel expense by ID"""
+    expense = db.query(models.TravelExpense).filter(
+        models.TravelExpense.expense_id == expense_id
+    ).first()
+    
+    if not expense:
+        raise HTTPException(status_code=404, detail="Travel expense not found")
+    
+    return expense
+
+@app.patch("/travel-expenses/{expense_id}", response_model=schema.TravelExpenseResponse)
+async def update_travel_expense(
+    expense_id: int,
+    name: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    amount: Optional[float] = Form(None),
+    expense_date: Optional[str] = Form(None),
+    receipt: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
+    """Update a travel expense"""
+    db_expense = db.query(models.TravelExpense).filter(
+        models.TravelExpense.expense_id == expense_id
+    ).first()
+    
+    if not db_expense:
+        raise HTTPException(status_code=404, detail="Travel expense not found")
+    
+    try:
+        # Update fields if provided
+        if name is not None:
+            db_expense.name = name
+        if description is not None:
+            db_expense.description = description
+        if amount is not None:
+            if amount <= 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Amount must be greater than 0"
+                )
+            db_expense.amount = amount
+        if expense_date is not None:
+            try:
+                parsed_date = datetime.strptime(expense_date, "%Y-%m-%d").date()
+                db_expense.expense_date = parsed_date
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid date format. Please use YYYY-MM-DD format."
+                )
+        
+        # Handle receipt if provided
+        if receipt:
+            content_type = receipt.content_type
+            if content_type not in ["image/jpeg", "image/png"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Only JPG and PNG images are allowed for receipts"
+                )
+            
+            try:
+                receipt_data = await receipt.read()
+                image_type = "jpg" if content_type == "image/jpeg" else "png"
+                db_expense.receipt_data = receipt_data
+                db_expense.receipt_type = image_type
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Failed to process receipt: {str(e)}"
+                )
+        
+        db.commit()
+        db.refresh(db_expense)
+        return db_expense
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while updating the travel expense: {str(e)}"
+        )
+
+@app.delete("/travel-expenses/{expense_id}", response_model=dict)
+def delete_travel_expense(
+    expense_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a travel expense"""
+    db_expense = db.query(models.TravelExpense).filter(
+        models.TravelExpense.expense_id == expense_id
+    ).first()
+    
+    if not db_expense:
+        raise HTTPException(status_code=404, detail="Travel expense not found")
+    
+    try:
+        expense_name = db_expense.name
+        db.delete(db_expense)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Travel expense '{expense_name}' has been deleted",
+            "expense_id": expense_id
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while deleting the travel expense: {str(e)}"
+        )
+
+@app.get("/travel-expenses/{expense_id}/receipt")
+async def get_travel_expense_receipt(
+    expense_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get the receipt image for a travel expense"""
+    expense = db.query(models.TravelExpense).filter(
+        models.TravelExpense.expense_id == expense_id
+    ).first()
+    
+    if not expense:
+        raise HTTPException(status_code=404, detail="Travel expense not found")
+    
+    if not expense.receipt_data:
+        raise HTTPException(status_code=404, detail="No receipt found for this expense")
+    
+    content_type = "image/jpeg" if expense.receipt_type == "jpg" else "image/png"
+    
+    return Response(
+        content=expense.receipt_data,
+        media_type=content_type,
+        headers={"Content-Disposition": f"inline; filename=receipt_{expense_id}.{expense.receipt_type}"}
+    )
+
+@app.get("/events/{event_id}/debug")
+def debug_event_products(
+    event_id: int,
+    db: Session = Depends(get_db)
+):
+    """Debug endpoint to check event products and their price points"""
+    db_event = db.query(models.Event).filter(models.Event.event_id == event_id).first()
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Get all products from this event
+    products = db.query(models.Product).filter(
+        models.Product.event_id == event_id
+    ).all()
+    
+    debug_info = {
+        "event_id": event_id,
+        "event_name": db_event.name,
+        "total_products": len(products),
+        "products": []
+    }
+    
+    for product in products:
+        product_info = {
+            "product_id": product.product_id,
+            "name": product.name,
+            "sku": product.sku,
+            "is_active": product.is_active,
+            "event_id": product.event_id,
+            "instances": []
+        }
+        
+        # Get all instances for this product
+        instances = db.query(models.ProductInstance).filter(
+            models.ProductInstance.product_id == product.product_id
+        ).all()
+        
+        for instance in instances:
+            product_info["instances"].append({
+                "instance_id": instance.instance_id,
+                "base_cost": float(instance.base_cost),
+                "status": instance.status,
+                "purchase_date": instance.purchase_date.isoformat() if instance.purchase_date else None,
+                "location": instance.location
+            })
+        
+        debug_info["products"].append(product_info)
+    
+    return debug_info
+
 # Product Category endpoints
 @app.post("/categories/", response_model=schema.CategoryResponse)
 def create_category(
@@ -163,6 +629,7 @@ async def create_product(
     purchase_date: str = Form(...),
     location: Optional[str] = Form(None),
     obtained_method: str = Form(...),
+    event_id: Optional[int] = Form(None),
     base_costs: List[float] = Form(...),
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
@@ -234,6 +701,7 @@ async def create_product(
             name=name,
             sku=sku,
             category_id=category_id,
+            event_id=event_id,
             description=description,
             condition=condition,
             purchase_date = purchase_date,

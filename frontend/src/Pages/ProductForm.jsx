@@ -75,6 +75,7 @@ const ProductForm = () => {
     category_id: "Select Option",
     condition: "Select Option",
     obtained_method: "Select Option",
+    event_id: "Select Option",
     purchase_date: "",
     location: "Select Option",
     image: null,
@@ -85,6 +86,9 @@ const ProductForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ type: "", message: "" });
   const [categories, setCategories] = useState([
+    { value: "Select Option", label: "Select Option" },
+  ]);
+  const [events, setEvents] = useState([
     { value: "Select Option", label: "Select Option" },
   ]);
 
@@ -105,6 +109,7 @@ const ProductForm = () => {
           category_id: productData.category_id.toString(),
           condition: productData.condition,
           obtained_method: productData.obtained_method,
+          event_id: productData.event_id ? productData.event_id.toString() : "Select Option",
           purchase_date: formattedDate,
           location: productData.location || "Select Option",
           description: productData.description || "",
@@ -223,6 +228,7 @@ const ProductForm = () => {
           category_id: categoryId,
           condition: form.condition,
           obtained_method: form.obtained_method.toLowerCase(),
+          event_id: form.event_id !== "Select Option" ? parseInt(form.event_id, 10) : null,
           location: form.location,
           purchase_date: dateValue,
           description: form.description,
@@ -251,6 +257,10 @@ const ProductForm = () => {
         // Add optional fields
         if (form.location && form.location !== "Select Option") {
           formData.append("location", form.location);
+        }
+
+        if (form.event_id && form.event_id !== "Select Option") {
+          formData.append("event_id", form.event_id);
         }
 
         if (form.description) {
@@ -359,6 +369,30 @@ const ProductForm = () => {
     fetchCategories();
   }, [getCategories]);
 
+  // Fetch events
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/events/`);
+        if (!response.ok) throw new Error('Failed to fetch events');
+        const data = await response.json();
+
+        const mappedEvents = [
+          { value: "Select Option", label: "Select Option" },
+          ...data.map((event) => ({
+            value: event.event_id.toString(),
+            label: event.name,
+          })),
+        ];
+        setEvents(mappedEvents);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
   return (
     <div className="w-11/12 mx-auto lg:max-w-7xl">
       {submitStatus.message && (
@@ -437,6 +471,13 @@ const ProductForm = () => {
             options={obtainingMethods}
             onChange={handleFormChange}
             required
+          />
+          <InputSelect
+            name="event_id"
+            title="Event"
+            value={form.event_id}
+            options={events}
+            onChange={handleFormChange}
           />
 
             <NumberInput

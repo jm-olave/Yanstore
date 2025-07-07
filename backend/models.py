@@ -3,6 +3,48 @@ from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql import func
 from database import Base
 
+class Event(Base):
+    """
+    Manages events where the company goes to collect products for sale.
+    Tracks event details, budget, and expenses.
+    """
+    __tablename__ = "events"
+
+    event_id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False)
+    description = Column(Text)
+    country = Column(String(100), nullable=False)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    initial_budget = Column(Numeric(12, 2), nullable=False)
+    end_budget = Column(Numeric(12, 2), default=0.00, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    products = relationship("Product", back_populates="event")
+    travel_expenses = relationship("TravelExpense", back_populates="event", cascade="all, delete-orphan")
+
+class TravelExpense(Base):
+    """
+    Manages travel expenses for events with detailed information and receipt tracking.
+    """
+    __tablename__ = "travel_expenses"
+
+    expense_id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey('events.event_id', ondelete='CASCADE'), nullable=False)
+    name = Column(String(200), nullable=False)
+    description = Column(Text)
+    amount = Column(Numeric(10, 2), nullable=False)
+    expense_date = Column(Date, nullable=False)
+    receipt_data = Column(LargeBinary)  # Store receipt image data
+    receipt_type = Column(String(10))  # 'jpg' or 'png'
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    event = relationship("Event", back_populates="travel_expenses")
+
 class ProductCategory(Base):
     __tablename__ = "product_categories"
     
@@ -21,6 +63,7 @@ class Product(Base):
     product_id = Column(Integer, primary_key=True, index=True)
     sku = Column(String(50), unique=True, nullable=False)
     category_id = Column(Integer, ForeignKey('product_categories.category_id', ondelete='SET NULL'))
+    event_id = Column(Integer, ForeignKey('events.event_id', ondelete='SET NULL'))
     name = Column(String(200), nullable=False)
     description = Column(String)
     location = Column(String(100))
@@ -33,6 +76,7 @@ class Product(Base):
     
     # Relationships
     category = relationship("ProductCategory", back_populates="products")
+    event = relationship("Event", back_populates="products")
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
     price_points = relationship("PricePoint", back_populates="product", cascade="all, delete-orphan")
     instances = relationship("ProductInstance", back_populates="product", cascade="all, delete-orphan")
