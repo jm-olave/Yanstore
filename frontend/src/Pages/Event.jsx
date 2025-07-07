@@ -457,7 +457,7 @@ const Event = () => {
             </h3>
             <button
               onClick={() => handleCreateTravelExpense(selectedEvent)}
-              className="px-3 py-1 bg-orange-600 text-white text-sm rounded hover:bg-orange-700"
+              className="bg-secondaryBlue text-white px-4 py-2 rounded-md hover:bg-blue-700"
             >
               Add Expense
             </button>
