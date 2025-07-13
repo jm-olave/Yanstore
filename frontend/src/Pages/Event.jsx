@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import EventModal from '../Components/EventModal/EventModal';
 import TravelExpenseModal from '../Components/TravelExpenseModal/TravelExpenseModal';
+import TableRow from '../Components/TableRow/TableRow';
+import TableCol from '../Components/TableCol/TableCol';
 
 const Event = () => {
   const [events, setEvents] = useState([]);
@@ -16,7 +18,6 @@ const Event = () => {
   const [editingExpense, setEditingExpense] = useState(null);
   const [isExpenseEditMode, setIsExpenseEditMode] = useState(false);
 
-  // API functions
   const createEvent = async (eventData) => {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/events/`, {
       method: 'POST',
@@ -145,7 +146,7 @@ const Event = () => {
       }
       fetchEvents();
     } catch (error) {
-      throw error; // Let the modal handle the error display
+      throw error;
     }
   };
 
@@ -248,7 +249,7 @@ const Event = () => {
   const handleCalculateBudget = async (eventId) => {
     try {
       const result = await calculateEndBudget(eventId);
-      console.log('Calculate budget result:', result); // Debug log
+      console.log('Calculate budget result:', result);
       
       const calculationText = result.calculation || 'Calculation not available';
       const totalSpent = result.total_spent_on_products || 0;
@@ -258,9 +259,9 @@ const Event = () => {
         type: "success",
         message: `Budget calculated: ${calculationText}. Total spent on products: $${totalSpent.toFixed(2)}. Total travel expenses: $${totalTravelExpenses.toFixed(2)}`,
       });
-      fetchEvents(); // Refresh to get updated end_budget
+      fetchEvents();
     } catch (error) {
-      console.error('Calculate budget error:', error); // Debug log
+      console.error('Calculate budget error:', error);
       setSubmitStatus({
         type: "error",
         message: `Failed to calculate end budget: ${error.message}`,
@@ -294,7 +295,7 @@ const Event = () => {
       )}
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Events</h1>
+        <h1 className="text-2xl font-bold text-gray-900 text-secondaryBlue">Events</h1>
         <button
           onClick={handleCreateEvent}
           className="bg-secondaryBlue text-white px-4 py-2 rounded-md hover:bg-blue-700"
@@ -303,56 +304,35 @@ const Event = () => {
         </button>
       </div>
 
-      {/* Events Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Event Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Country
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date Range
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Initial Budget
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  End Budget
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
+      <div className="bg-white overflow-hidden">
+        <div className="overflow-x-auto relative h-full">
+          <table className="divide-y divide-gray-200 w-full min-w-[800px]">
+            <thead className="bg-gray-50 font-Mulish font-black text-secondaryBlue">
+              <TableRow>
+                <TableCol text="Event Name" />
+                <TableCol text="Country" />
+                <TableCol text="Date Range" />
+                <TableCol text="Initial Budget" />
+                <TableCol text="End Budget" />
+                <TableCol text="Actions" />
+              </TableRow>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-200 font-Josefin align-middle">
               {events.map((event) => (
-                <tr key={event.event_id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <TableRow key={event.event_id}>
+                  <TableCol>
                     <div className="text-sm font-medium text-gray-900">{event.name}</div>
                     {event.description && (
                       <div className="text-sm text-gray-500 truncate max-w-xs">
                         {event.description}
                       </div>
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {event.country}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatDate(event.start_date)} - {formatDate(event.end_date)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(event.initial_budget)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(event.end_budget)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  </TableCol>
+                  <TableCol text={event.country} />
+                  <TableCol text={`${formatDate(event.start_date)} - ${formatDate(event.end_date)}`} />
+                  <TableCol text={formatCurrency(event.initial_budget)} />
+                  <TableCol text={formatCurrency(event.end_budget)} />
+                  <TableCol>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleViewProducts(event)}
@@ -385,62 +365,41 @@ const Event = () => {
                         Delete
                       </button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCol>
+                </TableRow>
               ))}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Event Products Table */}
       {selectedEvent && eventProducts.length > 0 && (
-        <div className="mt-8 bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="mt-8 bg-white overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-secondaryBlue">
               Products from {selectedEvent.name}
             </h3>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SKU
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Condition
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Location
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Purchase Date
-                  </th>
-                </tr>
+          <div className="overflow-x-auto relative h-full">
+            <table className="divide-y divide-gray-200 w-full min-w-[800px]">
+              <thead className="bg-gray-50 font-Mulish font-black text-secondaryBlue">
+                <TableRow>
+                  <TableCol text="Name" />
+                  <TableCol text="SKU" />
+                  <TableCol text="Condition" />
+                  <TableCol text="Location" />
+                  <TableCol text="Purchase Date" />
+                </TableRow>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200 font-Josefin align-middle">
                 {eventProducts.map((product) => (
-                  <tr key={product.product_id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {product.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {product.sku}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {product.condition}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {product.location}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(product.purchase_date)}
-                    </td>
-                  </tr>
+                  <TableRow key={product.product_id}>
+                    <TableCol text={product.name} />
+                    <TableCol text={product.sku} />
+                    <TableCol text={product.condition} />
+                    <TableCol text={product.location} />
+                    <TableCol text={formatDate(product.purchase_date)} />
+                  </TableRow>
                 ))}
               </tbody>
             </table>
@@ -448,11 +407,10 @@ const Event = () => {
         </div>
       )}
 
-      {/* Event Travel Expenses Table */}
       {selectedEvent && (
-        <div className="mt-8 bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="mt-8 bg-white overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-secondaryBlue">
               Travel Expenses from {selectedEvent.name}
             </h3>
             <button
@@ -462,47 +420,27 @@ const Event = () => {
               Add Expense
             </button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Receipt
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
+          <div className="overflow-x-auto relative h-full">
+            <table className="divide-y divide-gray-200 w-full min-w-[800px]">
+              <thead className="bg-gray-50 font-Mulish font-black text-secondaryBlue">
+                <TableRow>
+                  <TableCol text="Name" />
+                  <TableCol text="Description" />
+                  <TableCol text="Amount" />
+                  <TableCol text="Date" />
+                  <TableCol text="Receipt" />
+                  <TableCol text="Actions" />
+                </TableRow>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200 font-Josefin align-middle">
                 {eventTravelExpenses.length > 0 ? (
                   eventTravelExpenses.map((expense) => (
-                    <tr key={expense.expense_id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {expense.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {expense.description || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatCurrency(expense.amount)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(expense.expense_date)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <TableRow key={expense.expense_id}>
+                      <TableCol text={expense.name} />
+                      <TableCol text={expense.description || '-'} />
+                      <TableCol text={formatCurrency(expense.amount)} />
+                      <TableCol text={formatDate(expense.expense_date)} />
+                      <TableCol>
                         {expense.receipt_type ? (
                           <a
                             href={`${import.meta.env.VITE_API_URL}/travel-expenses/${expense.expense_id}/receipt`}
@@ -515,8 +453,8 @@ const Event = () => {
                         ) : (
                           'No Receipt'
                         )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      </TableCol>
+                      <TableCol>
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleEditTravelExpense(expense)}
@@ -531,15 +469,15 @@ const Event = () => {
                             Delete
                           </button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCol>
+                    </TableRow>
                   ))
                 ) : (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500">
+                  <TableRow>
+                    <TableCol colSpan="6">
                       No travel expenses found for this event
-                    </td>
-                  </tr>
+                    </TableCol>
+                  </TableRow>
                 )}
               </tbody>
             </table>
@@ -547,7 +485,6 @@ const Event = () => {
         </div>
       )}
 
-      {/* Event Modal */}
       <EventModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -556,7 +493,6 @@ const Event = () => {
         isEditMode={isEditMode}
       />
 
-      {/* Travel Expense Modal */}
       <TravelExpenseModal
         isOpen={isTravelExpenseModalOpen}
         onClose={() => setIsTravelExpenseModalOpen(false)}
@@ -569,4 +505,4 @@ const Event = () => {
   );
 };
 
-export default Event; 
+export default Event;
