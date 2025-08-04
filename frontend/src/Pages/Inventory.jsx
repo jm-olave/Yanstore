@@ -11,6 +11,7 @@ import SellModal from '../Components/SellModal/SellModal';
 import TextInput from '../Components/TextInput/TextInput';
 import MigrationButton from '../Components/MigrationButton/MigrationButton';
 import DateInput from '../Components/DateInput/DateInput';
+import AddInstanceModal from '../Components/AddInstanceModal/AddInstanceModal';
 
 const ITEMS_PER_PAGE = 90;
 
@@ -78,6 +79,9 @@ const Inventory = () => {
 
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [newLocation, setNewLocation] = useState('');
+
+  const [addInstanceModalOpen, setAddInstanceModalOpen] = useState(false);
+  const [selectedProductForInstance, setSelectedProductForInstance] = useState(null);
 
   // This is the CORRECT and ONLY definition of getPaginatedProducts
   const getPaginatedInstances = (instancesToPaginate) => {
@@ -438,6 +442,30 @@ const Inventory = () => {
     setCurrentPage(page);
   };
 
+  const handleAddInstance = async (instanceData) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/instances/create/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: selectedProductForInstance.product_id,
+          ...instanceData
+        }),
+      });
+
+      if (response.ok) {
+        setSubmitStatus({ type: 'success', message: 'Instance added successfully!' });
+        setAddInstanceModalOpen(false);
+        window.location.reload();
+      } else {
+        const errorData = await response.json();
+        setSubmitStatus({ type: 'error', message: `Failed to add instance: ${errorData.detail}` });
+      }
+    } catch (error) {
+      setSubmitStatus({ type: 'error', message: `Error: ${error.message}` });
+    }
+  };
+
   console.log(displayedInstances)
 
   return (
@@ -498,6 +526,14 @@ const Inventory = () => {
           saleData={saleData}
           handleSell={handleSell}
           setSellModalOpen={setSellModalOpen}
+        />
+      )}
+
+      {addInstanceModalOpen && selectedProductForInstance && (
+        <AddInstanceModal 
+          selectedProduct={selectedProductForInstance}
+          setAddInstanceModalOpen={setAddInstanceModalOpen}
+          handleAddInstance={handleAddInstance}
         />
       )}
 
@@ -618,11 +654,18 @@ const Inventory = () => {
                     <TableCol text='EDIT' key='EDIT'/>
                     <TableCol text='DELETE' key='DELETE'/>
                     <TableCol text='SELL' key='SELL'/>
+                    <TableCol text='ADD INSTANCE' key='ADD_INSTANCE'/>
                   </TableRow>
                 </thead>
                 <tbody className='font-Josefin align-middle'>
                   {displayedInstances.length > 0 ? ( 
                     getSortedArray(getPaginatedInstances(displayedInstances)).map(item => {
+                      // Add safety check
+                      if (!item || !item.product) {
+                        console.error('Invalid item structure:', item);
+                        return null;
+                      }
+                      
                       const isSelected = selectedInstanceIds.includes(item.instance_id);
                       return (
                       <TableRow key={item.instance_id}>
@@ -634,17 +677,17 @@ const Inventory = () => {
                             onChange={() => handleSelectSingle(item.instance_id, isSelected)}
                           />
                         </TableCol>
-                        <TableCol text={item.product.sku} key={`sku-${item.instance_id}`}/>
-                        <TableCol text={item.product.name} key={`name-${item.instance_id}`}/>
-                        <TableCol text={item.product.condition} key={`cond-${item.instance_id}`}/>
+                        <TableCol text={item.product?.sku || 'N/A'} key={`sku-${item.instance_id}`}/>
+                        <TableCol text={item.product?.name || 'N/A'} key={`name-${item.instance_id}`}/>
+                        <TableCol text={item.condition || item.product?.condition || 'N/A'} key={`cond-${item.instance_id}`}/>
                         <TableCol text={item.purchase_date} key={`date-${item.instance_id}`}/>
                         <TableCol 
-                          text={categories.find(cat => cat.value === item.product.category_id?.toString())?.label || 'Unknown'} 
+                          text={categories.find(cat => cat.value === item.product?.category_id?.toString())?.label || 'Unknown'} 
                           key={`cat-${item.instance_id}`}
                         />
                         <TableCol text={item.base_cost ? `${Number(item.base_cost).toFixed(2)}` : 'N/A'} key={`cost-${item.instance_id}`}/>
                         <TableCol text={item.location || "Colombia"} key={`location-${item.instance_id}`}/>
-                        <TableCol text={item.product.description} key={`desc-${item.instance_id}`}/>
+                        <TableCol text={item.product?.description || 'N/A'} key={`desc-${item.instance_id}`}/>
                         <TableCol key={`image-${item.instance_id}`}>
                           <div onClick={() => modalHandler(item.product.product_id, item.product.name)} className='text-secondaryBlue font-bold cursor-pointer'>
                             Image
@@ -679,12 +722,22 @@ const Inventory = () => {
                             {item.status !== 'available' ? 'Sold' : 'Sell'}
                           </button>
                         </TableCol>
+                        <TableCol>
+                          <div 
+                            className='text-secondaryBlue font-bold cursor-pointer hover:underline'
+                            onClick={() => {
+                              setSelectedProductForInstance(item.product);
+                              setAddInstanceModalOpen(true);
+                            }}
+                          >
+                            Add Instance
+                          </div>
+                        </TableCol>
                       </TableRow>
-                    )
-                  })
+                    )}).filter(Boolean) // Remove null items
                   ) : (
                     <TableRow>
-                      <TableCol colSpan="14" className="text-center py-4"> {/* Adjusted colSpan */}
+                      <TableCol colSpan="15" className="text-center py-4">
                         <div>No products found.</div>
                       </TableCol>
                     </TableRow>

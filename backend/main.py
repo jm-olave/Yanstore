@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import extract
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
@@ -1617,33 +1617,18 @@ def get_sale_details(
     
     return sale
 
-@app.get("/instances/", response_model=List[schema.ProductInstanceResponse])
-def get_all_instances(
-    skip: int = 0,
-    limit: int = 1000,  # Increased default limit to fetch more products
-    db: Session = Depends(get_db),
-    category_id: Optional[int] = None,
-    location: Optional[str] = None
-):
-    """Get all product instances with their associated product information"""
-    try:
-        # Start with a query that includes the product relationship
-        query = db.query(models.ProductInstance).join(models.Product)
-
-        # Apply filters if provided
-        if category_id:
-            query = query.filter(models.Product.category_id == category_id)
-        if location:
-            query = query.filter(models.ProductInstance.location == location)
-
-        # Get all instances with their products
-        instances = query.offset(skip).limit(limit).all()
-
-        return instances
-
-    except Exception as e:
-        print(f"Error in get_all_instances: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/instances/", response_model=List[schema.ProductInstanceWithProductResponse])
+def get_instances(db: Session = Depends(get_db)):
+    """Get all product instances with product details"""
+    instances = db.query(models.ProductInstance).options(
+        joinedload(models.ProductInstance.product)
+    ).all()
+    
+    # Debug: Check if product data is loaded
+    if instances:
+        print(f"First instance product: {instances[0].product}")
+    
+    return instances
 
 @app.post("/migrate-products-to-instances/", response_model=dict)
 def migrate_products_to_instances(db: Session = Depends(get_db)):
@@ -1712,6 +1697,44 @@ def migrate_products_to_instances(db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Migration failed: {str(e)}")
 
+@app.post("/instances/create/", response_model=schema.ProductInstanceResponse)
+def create_instance(
+    instance: schema.ProductInstanceCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a new product instance"""
+    try:
+        # Verify the product exists
+        product = db.query(models.Product).filter(
+            models.Product.product_id == instance.product_id
+        ).first()
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        
+        # Create the instance
+        db_instance = models.ProductInstance(
+            product_id=instance.product_id,
+            base_cost=instance.base_cost,
+            location=instance.location,
+            condition=instance.condition,
+            purchase_date=instance.purchase_date or date.today(),
+            status='available'
+        )
+        
+        db.add(db_instance)
+        db.commit()
+        db.refresh(db_instance)
+        return db_instance
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create instance: {str(e)}"
+        )
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--reset-db", action="store_true", help="Reset the database")
@@ -1723,3 +1746,13 @@ if __name__ == "__main__":
     else:
         import uvicorn
         uvicorn.run("app", host="0.0.0.0", port=8000)
+
+
+
+
+
+
+
+
+
+

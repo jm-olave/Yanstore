@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, Link, redirect } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link, redirect } from "react-router-dom";
 import InputSelect from "../Components/SelectInput/InputSelect";
 import TextInput from "../Components/TextInput/TextInput";
 import DateInput from "../Components/DateInput/DateInput";
@@ -47,130 +47,179 @@ const locations = [
 ];
 
 const ProductForm = () => {
-  const { productId } = useParams();
+  const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
-  const isEditMode = Boolean(productId);
-  // ADD API EXCHANGE RATE
-  const { convertToCOP, loading: exchangeRateLoading } = useExchangeRate();
-
-  // Use the API hook
-  const {
-    loading: apiLoading,
-    error: apiError,
-    getProduct,
-    getCategories,
-    createProduct,
-    updateProduct,
-    createPricePoint,
-  } = useApi();
-
-  // Use the date utils hook
-  const { formatForApi, formatForDisplay } = useDateUtils();
-
-  // Get current date in YYYY-MM-DD format for max date attribute
-  const today = new Date().toISOString().split("T")[0];
-
-  const [form, setForm] = useState({
-    name: "",
-    category_id: "Select Option",
-    condition: "Select Option",
-    obtained_method: "Select Option",
-    event_id: "Select Option",
-    purchase_date: "",
-    location: "Select Option",
-    image: null,
-    description: "",
-    base_costs: [""]
+  
+  // Add getCategories to the destructured useApi hook
+  const { createProduct, updateProduct, getCategories } = useApi();
+  const { formatForApi } = useDateUtils();
+  
+  // Check for duplicate parameter
+  const searchParams = new URLSearchParams(location.search);
+  const duplicateId = searchParams.get('duplicate');
+  const isEdit = Boolean(id);
+  const isDuplicate = Boolean(duplicateId);
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    category_id: '',
+    description: '',
+    condition: 'New',
+    purchase_date: '',
+    location: 'Colombia',
+    obtained_method: '',
+    event_id: '',
+    base_costs: ['']
   });
-
+  
+  const [originalProduct, setOriginalProduct] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [image, setImage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState({ type: "", message: "" });
-  const [categories, setCategories] = useState([
-    { value: "Select Option", label: "Select Option" },
-  ]);
-  const [events, setEvents] = useState([
-    { value: "Select Option", label: "Select Option" },
-  ]);
 
-  // Fetch product data if in edit mode
+  const today = new Date().toISOString().split('T')[0];
+
   useEffect(() => {
-    const fetchProductData = async () => {
-      if (!isEditMode) return;
-
-      try {
-        setIsSubmitting(true);
-        const productData = await getProduct(productId);
-
-        // Format the date using our hook
-        const formattedDate = formatForDisplay(productData.purchase_date);
-
-        setForm({
-          name: productData.name,
-          category_id: productData.category_id.toString(),
-          condition: productData.condition,
-          obtained_method: productData.obtained_method,
-          event_id: productData.event_id ? productData.event_id.toString() : "Select Option",
-          purchase_date: formattedDate,
-          location: productData.location || "Select Option",
-          description: productData.description || "",
-          image: null, // We don't load the existing image as it can't be displayed in the file input
-          base_costs: [""]
-        });
-      } catch (error) {
-        setSubmitStatus({
-          type: "error",
-          message: `Failed to load product: ${error.message}`,
-        });
-        console.error("Error fetching product:", error);
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-
-    fetchProductData();
-  }, [productId, isEditMode, getProduct, formatForDisplay]);
-
-  // Display API errors from the hook
-  useEffect(() => {
-    if (apiError) {
-      setSubmitStatus({
-        type: "error",
-        message: apiError,
-      });
+    fetchCategories();
+    fetchEvents();
+    
+    if (isEdit) {
+      fetchProduct(id);
+    } else if (isDuplicate) {
+      fetchProductForDuplication(duplicateId);
     }
-  }, [apiError]);
+  }, [id, duplicateId]);
+
+  const fetchProductForDuplication = async (productId) => {
+    try {
+      console.log('Fetching product for duplication, productId:', productId);
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/products/${productId}/`
+      );
+      if (!response.ok) throw new Error('Failed to fetch product');
+      const data = await response.json();
+      
+      // Fetch instances using the correct endpoint from main.py
+      const instancesResponse = await fetch(
+        `${import.meta.env.VITE_API_URL}/instances/`
+      );
+      let allBaseCosts = [''];
+      
+      if (instancesResponse.ok) {
+        const instancesData = await instancesResponse.json();
+        // Filter instances for this specific product
+        const productInstances = instancesData.filter(instance => 
+          instance.product_id === parseInt(productId)
+        );
+        
+        if (productInstances.length > 0) {
+          const uniqueCosts = [...new Set(productInstances.map(instance => instance.base_cost))];
+          allBaseCosts = uniqueCosts.map(cost => cost.toString());
+        }
+      }
+      
+      setOriginalProduct(data);
+      setFormData({
+        ...data,
+        name: data.name,
+        base_costs: allBaseCosts
+      });
+    } catch (error) {
+      console.error('Error fetching product for duplication:', error);
+    }
+  };
+
+  const fetchProduct = async (productId) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/products/${productId}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch product');
+      const data = await response.json();
+      setOriginalProduct(data);
+      setFormData({
+        ...data,
+        base_costs: [data.base_costs[0]]
+      });
+    } catch (error) {
+      console.error('Error fetching product:', error);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/categories`
+      );
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      const data = await response.json();
+      setCategories([
+        { value: "Select Option", label: "Select Option" },
+        ...data.map(cat => ({
+          value: cat.category_id.toString(),
+          label: cat.category_name
+        }))
+      ]);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/events`
+      );
+      if (!response.ok) throw new Error('Failed to fetch events');
+      const data = await response.json();
+      setEvents([
+        { value: "Select Option", label: "Select Option" },
+        ...data.map(event => ({
+          value: event.event_id.toString(),
+          label: event.name
+        }))
+      ]);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    }
+  };
 
   const validateForm = () => {
-    if (!form.name.trim()) {
+    if (!formData.name.trim()) {
       setSubmitStatus({ type: "error", message: "Name is required" });
       return false;
     }
-    if (form.category_id === "Select Option") {
+    if (formData.category_id === "Select Option") {
       setSubmitStatus({ type: "error", message: "Please select a category" });
       return false;
     }
-    if (form.condition === "Select Option") {
+    if (formData.condition === "Select Option") {
       setSubmitStatus({ type: "error", message: "Please select a condition" });
       return false;
     }
-    if (form.obtained_method === "Select Option") {
+    if (formData.obtained_method === "Select Option") {
       setSubmitStatus({
         type: "error",
         message: "Please select an obtaining method",
       });
       return false;
     }
-    if (form.location === "Select Option") {
+    if (formData.location === "Select Option") {
       setSubmitStatus({ type: "error", message: "Please select a location" });
       return false;
     }
-    if (!form.purchase_date) {
+    if (!formData.purchase_date) {
       setSubmitStatus({ type: "error", message: "Purchase date is required" });
       return false;
     }
 
     // Validate base costs
-    if (!form.base_costs || form.base_costs.length === 0 || !form.base_costs[0].trim()) {
+    if (!formData.base_costs || formData.base_costs.length === 0 || !formData.base_costs[0].trim()) {
       setSubmitStatus({
         type: "error",
         message: "Base cost is required",
@@ -179,7 +228,7 @@ const ProductForm = () => {
     }
     
     // Check if at least one base cost has a valid value
-    const hasValidBaseCost = form.base_costs.some(cost => cost && cost.trim() && !isNaN(parseFloat(cost)) && parseFloat(cost) > 0);
+    const hasValidBaseCost = formData.base_costs.some(cost => cost && cost.trim() && !isNaN(parseFloat(cost)) && parseFloat(cost) > 0);
     if (!hasValidBaseCost) {
       setSubmitStatus({
         type: "error",
@@ -187,7 +236,7 @@ const ProductForm = () => {
       });
       return false;
     }
-    if (form.shipment_cost && parseFloat(form.shipment_cost) < 0) {
+    if (formData.shipment_cost && parseFloat(formData.shipment_cost) < 0) {
       setSubmitStatus({
         type: "error",
         message: "Shipment cost cannot be negative",
@@ -196,7 +245,7 @@ const ProductForm = () => {
     }
 
     // Additional validation to ensure the date is not in the future
-    const selectedDate = new Date(form.purchase_date);
+    const selectedDate = new Date(formData.purchase_date);
     const currentDate = new Date();
 
     if (selectedDate > currentDate) {
@@ -215,27 +264,27 @@ const ProductForm = () => {
       setIsSubmitting(true);
       setSubmitStatus({ type: "", message: "" });
 
-      const categoryId = parseInt(form.category_id, 10);
+      const categoryId = parseInt(formData.category_id, 10);
       if (isNaN(categoryId)) {
         throw new Error("Invalid category ID");
       }
 
-      const dateValue = formatForApi(form.purchase_date);
+      const dateValue = formatForApi(formData.purchase_date);
 
-      if (isEditMode) {
+      if (isEdit) {
         const updateData = {
-          name: form.name,
+          name: formData.name,
           category_id: categoryId,
-          condition: form.condition,
-          obtained_method: form.obtained_method.toLowerCase(),
-          event_id: form.event_id !== "Select Option" ? parseInt(form.event_id, 10) : null,
-          location: form.location,
+          condition: formData.condition,
+          obtained_method: formData.obtained_method.toLowerCase(),
+          event_id: formData.event_id !== "Select Option" ? parseInt(formData.event_id, 10) : null,
+          location: formData.location,
           purchase_date: dateValue,
-          description: form.description,
+          description: formData.description,
         };
 
         console.log("Updating product with data:", updateData);
-        await updateProduct(productId, updateData);
+        await updateProduct(id, updateData);
 
         setSubmitStatus({
           type: "success",
@@ -248,31 +297,31 @@ const ProductForm = () => {
         const formData = new FormData();
 
         // Add all required fields
-        formData.append("name", form.name);
+        formData.append("name", formData.name);
         formData.append("category_id", categoryId);
-        formData.append("condition", form.condition);
-        formData.append("obtained_method", form.obtained_method.toLowerCase());
+        formData.append("condition", formData.condition);
+        formData.append("obtained_method", formData.obtained_method.toLowerCase());
         formData.append("purchase_date", dateValue);
 
         // Add optional fields
-        if (form.location && form.location !== "Select Option") {
-          formData.append("location", form.location);
+        if (formData.location && formData.location !== "Select Option") {
+          formData.append("location", formData.location);
         }
 
-        if (form.event_id && form.event_id !== "Select Option") {
-          formData.append("event_id", form.event_id);
+        if (formData.event_id && formData.event_id !== "Select Option") {
+          formData.append("event_id", formData.event_id);
         }
 
-        if (form.description) {
-          formData.append("description", form.description);
+        if (formData.description) {
+          formData.append("description", formData.description);
         }
 
-        form.base_costs.forEach((cost) => {
+        formData.base_costs.forEach((cost) => {
           formData.append("base_costs", cost);
         });
 
-        if (form.image) {
-          formData.append("image", form.image);
+        if (formData.image) {
+          formData.append("image", formData.image);
         }
 
         const newProduct = await createProduct(formData);
@@ -283,7 +332,7 @@ const ProductForm = () => {
         });
 
         // Reset form after successful submission (only in create mode)
-        setForm({
+        setFormData({
           name: "",
           category_id: "Select Option",
           condition: "Select Option",
@@ -298,7 +347,7 @@ const ProductForm = () => {
     } catch (error) {
       setSubmitStatus({
         type: "error",
-        message: `Failed to ${isEditMode ? "update" : "submit"} form: ${
+        message: `Failed to ${isEdit ? "update" : "submit"} form: ${
           error.message
         }`,
       });
@@ -312,12 +361,12 @@ const ProductForm = () => {
     const { name, value, type, files } = e.target;
 
     if (type === "file" && files) {
-      setForm((prev) => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: files[0],
       }));
     } else {
-      setForm((prev) => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value,
       }));
@@ -325,19 +374,19 @@ const ProductForm = () => {
   };
 
   const handleBaseCostChange = (index, value) => {
-    const newBaseCosts = [...form.base_costs];
+    const newBaseCosts = [...formData.base_costs];
     newBaseCosts[index] = value;
-    setForm((prev) => ({ ...prev, base_costs: newBaseCosts }));
+    setFormData((prev) => ({ ...prev, base_costs: newBaseCosts }));
   };
 
   const addBaseCostInput = () => {
-    setForm((prev) => ({ ...prev, base_costs: [...prev.base_costs, ""] }));
+    setFormData((prev) => ({ ...prev, base_costs: [...prev.base_costs, ""] }));
   };
 
   const removeBaseCostInput = (index) => {
-    const newBaseCosts = [...form.base_costs];
+    const newBaseCosts = [...formData.base_costs];
     newBaseCosts.splice(index, 1);
-    setForm((prev) => ({ ...prev, base_costs: newBaseCosts }));
+    setFormData((prev) => ({ ...prev, base_costs: newBaseCosts }));
   };
 
   const handleSubmit = async (event) => {
@@ -413,19 +462,19 @@ const ProductForm = () => {
             name="name"
             title="Name"
             placeholder="Name"
-            value={form.name}
+            value={formData.name}
             onChange={handleFormChange}
             required
           />
           <InputSelect
             name="location"
             title="Location"
-            value={form.location}
+            value={formData.location}
             options={locations}
             onChange={handleFormChange}
             required
           />
-          {form.base_costs.map((cost, index) => (
+          {formData.base_costs.map((cost, index) => (
             <div key={index} className="flex items-center">
               <NumberInput
                 name={`base_cost_${index}`}
@@ -434,7 +483,7 @@ const ProductForm = () => {
                 onChange={(e) => handleBaseCostChange(index, e.target.value)}
                 required
               />
-              {form.base_costs.length > 1 && (
+              {formData.base_costs.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeBaseCostInput(index)}
@@ -459,7 +508,7 @@ const ProductForm = () => {
           <InputSelect
             name="category_id"
             title="Categories"
-            value={form.category_id}
+            value={formData.category_id}
             options={categories}
             onChange={handleFormChange}
             required
@@ -467,7 +516,7 @@ const ProductForm = () => {
           <InputSelect
             name="obtained_method"
             title="Obtaining Method"
-            value={form.obtained_method}
+            value={formData.obtained_method}
             options={obtainingMethods}
             onChange={handleFormChange}
             required
@@ -475,7 +524,7 @@ const ProductForm = () => {
           <InputSelect
             name="event_id"
             title="Event"
-            value={form.event_id}
+            value={formData.event_id}
             options={events}
             onChange={handleFormChange}
           />
@@ -483,14 +532,14 @@ const ProductForm = () => {
             <NumberInput
               name="shipment_cost"
               title="Shipment Cost"
-              value={form.shipment_cost}
+              value={formData.shipment_cost}
               onChange={handleFormChange}
             />
-            {form.shipment_cost && !isNaN(parseFloat(form.shipment_cost)) && (
+            {formData.shipment_cost && !isNaN(parseFloat(formData.shipment_cost)) && (
               <div className="text-center font-Josefin font-semibold text-sm text-secondaryBlue">
                 {exchangeRateLoading
                   ? "Loading..."
-                  : convertToCOP(form.shipment_cost)}
+                  : convertToCOP(formData.shipment_cost)}
               </div>
             )}
         </div>
@@ -499,8 +548,8 @@ const ProductForm = () => {
           <InputSelect
             name="condition"
             title="Condition"
-            value={form.condition}
-            options={form.category_id === "4" ? cardConditions : conditions}
+            value={formData.condition}
+            options={formData.category_id === "4" ? cardConditions : conditions}
             onChange={handleFormChange}
             required
           />
@@ -508,7 +557,7 @@ const ProductForm = () => {
           <DateInput
             name="purchase_date"
             title="Purchase Date"
-            value={form.purchase_date}
+            value={formData.purchase_date}
             onChange={(e) => {
               handleFormChange({
                 target: {
@@ -531,7 +580,7 @@ const ProductForm = () => {
             name="description"
             title="Notes"
             placeholder="Notes"
-            value={form.description}
+            value={formData.description}
             onChange={handleFormChange}
           />
         </div>
@@ -551,3 +600,18 @@ const ProductForm = () => {
 };
 
 export default ProductForm;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

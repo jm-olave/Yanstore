@@ -263,14 +263,36 @@ class ProductInstanceBase(BaseModel):
     """Base schema for product instance data"""
     product_id: int
     base_cost: Decimal = Field(..., ge=0)
-    status: str = Field(..., pattern='^(available|sold|reserved)$')
+    status: str = Field(default='available', pattern='^(available|sold|reserved)$')
     purchase_date: Optional[date] = None
     location: Optional[str] = Field(None, max_length=100)
+    condition: str = Field(..., pattern=VALID_CONDITIONS)
 
 class ProductInstanceCreate(ProductInstanceBase):
     """Schema for creating a new product instance"""
     pass
 
+class ProductInstanceUpdate(BaseModel):
+    """Schema for updating a product instance"""
+    base_cost: Optional[Decimal] = Field(None, ge=0)
+    status: Optional[str] = Field(None, pattern='^(available|sold|reserved)$')
+    location: Optional[str] = Field(None, max_length=100)
+    condition: Optional[str] = Field(None, pattern=VALID_CONDITIONS)
+
+class ProductInstanceResponse(BaseModel):
+    """Schema for product instance responses"""
+    instance_id: int
+    product_id: int
+    base_cost: Decimal
+    status: str
+    purchase_date: Optional[date] = None
+    location: Optional[str] = None
+    condition: Optional[str] = None  # Make this optional
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
 
 class InventoryResponse(BaseModel):
     """Schema for inventory responses"""
@@ -302,16 +324,6 @@ class ProductResponse(ProductBase):
 
     class Config:
         orm_mode = True
-
-class ProductInstanceResponse(ProductInstanceBase):
-    """Schema for product instance responses"""
-    instance_id: int
-    created_at: datetime
-    updated_at: datetime
-    product: ProductResponse
-
-    class Config:
-        from_attributes = True
 
 class PriceHistoryResponse(BaseModel):
     """Schema for price history responses"""
@@ -459,3 +471,23 @@ class DeleteResponse(BaseModel):
     success: bool
     message: str
     product_id: Optional[int] = None
+
+class ProductInstanceWithProductResponse(BaseModel):
+    """Schema for product instance responses with product details"""
+    instance_id: int
+    product_id: int
+    base_cost: Decimal
+    status: str
+    purchase_date: Optional[date] = None
+    location: Optional[str] = None
+    condition: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    # Include product details - make sure this matches your ProductResponse
+    product: Optional[ProductResponse] = None
+
+    class Config:
+        from_attributes = True
+
+

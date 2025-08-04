@@ -156,16 +156,18 @@ class ProductImage(Base):
 
 class ProductInstance(Base):
     __tablename__ = "product_instances"
-
+    
     instance_id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey('products.product_id', ondelete='CASCADE'), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.product_id"), nullable=False)
     base_cost = Column(Numeric(10, 2), nullable=False)
-    status = Column(String(20), nullable=False, default='available')
-    purchase_date = Column(Date)
-    location = Column(String(100))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
+    status = Column(String(20), default='available', nullable=False)
+    purchase_date = Column(Date, nullable=True)
+    location = Column(String(100), nullable=True)
+    condition = Column(String(50), nullable=True, default='New')  # Add default value
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Relationship
     product = relationship("Product", back_populates="instances")
 
 class Inventory(Base):
@@ -395,3 +397,4 @@ class ProfitAndLoss(Base):
     net_income = Column(Numeric(12, 2), nullable=False, default=0.00)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
