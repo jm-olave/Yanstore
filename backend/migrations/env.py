@@ -9,8 +9,17 @@ from dotenv import load_dotenv
 # Add the parent directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Load environment variables
-load_dotenv(".env.development")
+# Load environment variables - check for production first
+if os.path.exists(".env.production"):
+    load_dotenv(".env.production")
+elif os.path.exists(".env"):
+    load_dotenv(".env")
+else:
+    load_dotenv(".env.development")
+
+# Debug: Print what we're loading
+database_url = os.getenv('DATABASE_URL')
+print(f"DATABASE_URL from env: {database_url}")
 
 # Import your SQLAlchemy models
 from models import Base
@@ -22,8 +31,11 @@ config = context.config
 # Set up sqlalchemy url from environment variables
 # Prefer DATABASE_URL if set, otherwise use local connection
 
-database_url = os.getenv('DATABASE_URL')
 if database_url:
+    # Fix postgres:// to postgresql:// if needed (for Neon compatibility)
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://')
+    print(f"Using DATABASE_URL: {database_url[:50]}...")  # Only show first 50 chars for security
     config.set_main_option('sqlalchemy.url', database_url)
 else:
     DB_USER = os.getenv('DB_USER', 'postgres')
@@ -31,8 +43,9 @@ else:
     DB_HOST = os.getenv('DB_HOST', 'localhost')
     DB_PORT = os.getenv('DB_PORT', '5432')
     DB_NAME = os.getenv('DB_NAME', 'yanstore')
-    config.set_main_option('sqlalchemy.url', 
-        f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
+    local_url = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    print(f"Using local database: {local_url}")
+    config.set_main_option('sqlalchemy.url', local_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -99,3 +112,4 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+

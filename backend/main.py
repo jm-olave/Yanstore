@@ -1621,7 +1621,21 @@ def get_sale_details(
 def get_instances(db: Session = Depends(get_db)):
     """Get all product instances with product details"""
     instances = db.query(models.ProductInstance).options(
-        joinedload(models.ProductInstance.product)
+        joinedload(models.ProductInstance.product).load_only(
+            models.Product.product_id,
+            models.Product.sku,
+            models.Product.category_id,
+            models.Product.event_id,
+            models.Product.name,
+            models.Product.description,
+            models.Product.condition,
+            models.Product.is_active,
+            models.Product.purchase_date,
+            models.Product.obtained_method,
+            models.Product.created_at,
+            models.Product.updated_at
+            # Note: Excluding Product.location to avoid conflict
+    )
     ).all()
     
     # Debug: Check if product data is loaded
