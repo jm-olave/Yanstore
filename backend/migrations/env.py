@@ -10,12 +10,8 @@ from dotenv import load_dotenv
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Load environment variables - check for production first
-if os.path.exists(".env.production"):
-    load_dotenv(".env.production")
-elif os.path.exists(".env"):
-    load_dotenv(".env")
-else:
-    load_dotenv(".env.development")
+# Load environment variables - check for production first
+load_dotenv(".env.development")
 
 # Debug: Print what we're loading
 database_url = os.getenv('DATABASE_URL')

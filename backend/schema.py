@@ -259,6 +259,11 @@ class ProductBulkUpdateLocationRequest(BaseModel):
     product_ids: List[int]
     new_location: str = Field(..., min_length=1)
 
+class InstanceBulkUpdateLocationRequest(BaseModel):
+    """Schema for bulk updating instance locations"""
+    instance_ids: List[int]
+    new_location: str = Field(..., min_length=1)
+
 class ProductInstanceBase(BaseModel):
     """Base schema for product instance data"""
     product_id: int

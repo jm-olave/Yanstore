@@ -11,7 +11,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
-load_dotenv(".env.development")
+# Load environment variables based on environment
+if os.getenv('ENV') == 'production':
+    load_dotenv('.env.production')
+else:
+    load_dotenv('.env.development')
 
 # Create settings dictionary directly from environment variables
 @dataclass

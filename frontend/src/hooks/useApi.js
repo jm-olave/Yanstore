@@ -177,13 +177,13 @@ export const useApi = () => {
    * @param {string} newLocation - The new location string
    * @returns {Promise<Object>} Response data
    */
-  const bulkUpdateProductLocation = useCallback(async (productIds, newLocation) => {
-    return fetchData('/products/bulk-update-location', {
+  const bulkUpdateProductLocation = useCallback(async (instanceIds, newLocation) => {
+    return fetchData('/instances/bulk-update-location', {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ product_ids: productIds, new_location: newLocation })
+      body: JSON.stringify({ instance_ids: instanceIds, new_location: newLocation })
     });
   }, [fetchData]);
 

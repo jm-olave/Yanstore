@@ -1749,6 +1749,44 @@ def create_instance(
             detail=f"Failed to create instance: {str(e)}"
         )
 
+@app.patch("/instances/bulk-update-location", response_model=dict)
+def bulk_update_instance_location(
+    request_data: schema.InstanceBulkUpdateLocationRequest,
+    db: Session = Depends(get_db)
+):
+    """Bulk update location for a list of instances."""
+    logger.info(f"Received bulk_update_instance_location request_data: {request_data}")
+    updated_count = 0
+    errors = []
+
+    instances_to_update = db.query(models.ProductInstance).filter(
+        models.ProductInstance.instance_id.in_(request_data.instance_ids)
+    ).all()
+
+    found_instance_ids = {i.instance_id for i in instances_to_update}
+
+    for instance_id in request_data.instance_ids:
+        if instance_id not in found_instance_ids:
+            errors.append({"instance_id": instance_id, "error": "Instance not found"})
+
+    for instance in instances_to_update:
+        instance.location = request_data.new_location
+        updated_count += 1
+
+    if updated_count > 0:
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error during bulk update commit: {str(e)}")
+            raise HTTPException(status_code=500, detail="An error occurred during the update.")
+
+    return {
+        "message": f"Bulk location update attempted. {updated_count} instances updated.",
+        "updated_count": updated_count,
+        "errors": errors
+    }
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--reset-db", action="store_true", help="Reset the database")
