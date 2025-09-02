@@ -15,17 +15,17 @@ const useExchangeRate = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Call your backend API endpoint
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
         const response = await fetch(`${API_URL}/exchange-rates/`);
-        
+
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.rates) {
           setExchangeRates(data.rates);
         } else {
@@ -36,7 +36,7 @@ const useExchangeRate = () => {
         console.error('Error in useExchangeRate hook:', err);
         setError(err.message);
         // Fallback to a reasonable approximate value if API fails
-        setExchangeRates({ COP: 4000 }); 
+        setExchangeRates({ COP: 4000 });
       } finally {
         setLoading(false);
       }

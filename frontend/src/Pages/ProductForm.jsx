@@ -54,6 +54,7 @@ const ProductForm = () => {
   // Add getCategories to the destructured useApi hook
   const { createProduct, updateProduct, getCategories } = useApi();
   const { formatForApi } = useDateUtils();
+  const { loading: exchangeRateLoading, convertToCOP } = useExchangeRate();
   
   // Check for duplicate parameter
   const searchParams = new URLSearchParams(location.search);
@@ -294,37 +295,37 @@ const ProductForm = () => {
         navigate('/inventory')
       } else {
         // Create new product using the hook
-        const formData = new FormData();
+        const formDataToSend = new FormData();
 
         // Add all required fields
-        formData.append("name", formData.name);
-        formData.append("category_id", categoryId);
-        formData.append("condition", formData.condition);
-        formData.append("obtained_method", formData.obtained_method.toLowerCase());
-        formData.append("purchase_date", dateValue);
+        formDataToSend.append("name", formData.name);
+        formDataToSend.append("category_id", categoryId);
+        formDataToSend.append("condition", formData.condition);
+        formDataToSend.append("obtained_method", formData.obtained_method.toLowerCase());
+        formDataToSend.append("purchase_date", dateValue);
 
         // Add optional fields
         if (formData.location && formData.location !== "Select Option") {
-          formData.append("location", formData.location);
+          formDataToSend.append("location", formData.location);
         }
 
         if (formData.event_id && formData.event_id !== "Select Option") {
-          formData.append("event_id", formData.event_id);
+          formDataToSend.append("event_id", formData.event_id);
         }
 
         if (formData.description) {
-          formData.append("description", formData.description);
+          formDataToSend.append("description", formData.description);
         }
 
         formData.base_costs.forEach((cost) => {
-          formData.append("base_costs", cost);
+          formDataToSend.append("base_costs", cost);
         });
 
         if (formData.image) {
-          formData.append("image", formData.image);
+          formDataToSend.append("image", formData.image);
         }
 
-        const newProduct = await createProduct(formData);
+        const newProduct = await createProduct(formDataToSend);
 
         setSubmitStatus({
           type: "success",

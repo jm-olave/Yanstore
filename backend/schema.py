@@ -317,6 +317,7 @@ class ProductResponse(ProductBase):
     category_id: Optional[int]
     event_id: Optional[int]
     condition: str = Field(..., pattern=VALID_CONDITIONS)
+    obtained_method: Optional[str] = Field(None, max_length=50)  # Override to allow None/empty
     is_active: bool
     created_at: datetime
     updated_at: datetime

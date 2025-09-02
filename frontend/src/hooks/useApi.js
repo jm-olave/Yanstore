@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 // Get API URL from environment with fallback
 const API_URL = import.meta.env.VITE_API_URL || (
-  window.location.hostname === 'localhost' 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://127.0.0.1:8000'
     : 'https://new-yanstore-api-c29287e7c68d.herokuapp.com'
 );
